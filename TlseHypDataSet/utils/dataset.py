@@ -19,6 +19,7 @@ def spatial_disjoint_split(dataset, p_labeled, p_test):
     test_set = Subset(dataset, groups[split == 2])
     return labeled_set, unlabeled_set, test_set
 
+
 def sat_split_solver(dataset, p_labeled: float, p_test: float) -> np.ndarray:
     """
     Solves a SAT problem to optimally split the ground truth in a labeled, unlabeled and test sets.

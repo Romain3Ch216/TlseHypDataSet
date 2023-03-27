@@ -1,13 +1,15 @@
-import pdb
-
 import torch
 from torch.utils.data import Dataset
 import os
 import geopandas as gpd
+from geopandas import GeoDataFrame
 import numpy as np
 import pickle as pkl
 from osgeo import gdal
-from utils.geometry import is_polygon_in_rectangle, rasterize_gt_shapefile
+import rasterio
+from rasterio.features import rasterize
+from utils.utils import make_dirs
+from utils.geometry import is_polygon_in_rectangle, flip_array
 from utils.dataset import spatial_disjoint_split
 
 
@@ -60,7 +62,7 @@ class TlseHypDataSet(Dataset):
 
         self.image_rasters = [gdal.Open(os.path.join(self.root_path, 'images', image_path), gdal.GA_ReadOnly)
                               for image_path in self.images_path]
-        self.gts_path = rasterize_gt_shapefile(self)
+        self.gts_path = self.rasterize_gt_shapefile()
         self.gt_rasters = dict((att, [gdal.Open(gt_path, gdal.GA_ReadOnly) for gt_path in self.gts_path[att]])
                                for att in self.gts_path)
 
@@ -165,6 +167,42 @@ class TlseHypDataSet(Dataset):
                 areas[i, j] = polygons['geometry'].area.sum()
         return areas.astype(int)
 
+    def rasterize_gt_shapefile(self):
+        """
+        Rasterize the ground truth shapefile.
+        """
+        gt = self.ground_truth # gpd.read_file(os.path.join(dataset.root_path, 'GT', dataset.gt_path))
+        make_dirs([os.path.join(self.root_path, 'rasters')])
+        paths = {}
+
+        def shapes(gt: GeoDataFrame, attribute: str):
+            indices = gt.index
+            for i in range(len(gt)):
+                if np.isnan(gt.loc[indices[i], attribute]):
+                    yield gt.loc[indices[i], 'geometry'], 0
+                else:
+                    yield gt.loc[indices[i], 'geometry'], int(gt.loc[indices[i], attribute])
+
+        for attribute in ['Material', 'Class_2', 'Class_1']:
+            paths[attribute] = []
+            for id, img_path in enumerate(self.images_path):
+                path = os.path.join(self.root_path, 'rasters', 'gt_{}_{}.bsq'.format(attribute, id))
+                img = rasterio.open(os.path.join(self.root_path, 'images', img_path))
+                shape = img.shape
+                data = rasterize(shapes(gt.groupby(by='Image').get_group(id + 1), attribute), shape[:2], dtype='uint8',
+                                 transform=img.transform)
+                data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
+                with rasterio.Env():
+                    profile = img.profile
+                    profile.update(
+                        dtype=rasterio.uint8,
+                        count=1,
+                        compress='lzw')
+                    with rasterio.open(path, 'w', **profile) as dst:
+                        dst.write(data)
+                paths[attribute].append(path)
+        return paths
+
     def split_already_computed(self, p_labeled, p_test):
         file = 'ground_truth_split_p_labeled_{}_p_test_{}.pkl'.format(p_labeled, p_test)
         return file in os.listdir(self.root_path)
@@ -221,7 +259,7 @@ class TlseHypDataSet(Dataset):
                         patches.append(
                             tuple((left_col + i * self.patch_size, top_row + j * self.patch_size, self.patch_size, self.patch_size))
                         )
-                # self.patch_coordinates[id].append(patches)
+
                 groups.extend([polygon['Group']] * len(patches))
                 images.extend([img_id] * len(patches))
                 patch_coordinates.extend(patches)
@@ -229,16 +267,6 @@ class TlseHypDataSet(Dataset):
         self.patch_coordinates[:, 0] = images
         self.patch_coordinates[:, 1] = groups
         self.patch_coordinates[:, 2:] = patch_coordinates
-
-    @staticmethod
-    def flip(*arrays):
-        horizontal = np.random.random() > 0.5
-        vertical = np.random.random() > 0.5
-        if horizontal:
-            arrays = [np.fliplr(arr) for arr in arrays]
-        if vertical:
-            arrays = [np.flipud(arr) for arr in arrays]
-        return arrays
 
     def __len__(self):
         return len(self.patch_coordinates)
@@ -260,7 +288,7 @@ class TlseHypDataSet(Dataset):
         sample = sample / 10**4
 
         if self.flip_augmentation and self.patch_size > 1:
-            sample, gt = self.flip(sample, gt)
+            sample, gt = flip_array(sample, gt)
 
         sample = np.asarray(np.copy(sample), dtype="float32")
         gt = np.asarray(np.copy(gt), dtype="int64")
