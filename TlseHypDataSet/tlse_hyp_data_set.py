@@ -1,19 +1,27 @@
+import pdb
+
+import torch
 from torch.utils.data import Dataset
 import os
+import geopandas as gpd
+import numpy as np
+import pickle as pkl
+from osgeo import gdal
+from utils.geometry import is_polygon_in_rectangle, rasterize_gt_shapefile
+from utils.dataset import spatial_disjoint_split
 
 
 class TlseHypDataSet(Dataset):
     """
 
     """
-    def __init__(self, root_path: str, patch_size: int):
-        self.wv = None
-        self.bbl = None
-        self.E_dir = None
-        self.E_dif = None
+    def __init__(self, root_path: str, patch_size: int, padding: int, flip_augmentation: bool):
         self.root_path = root_path
+        self.patch_size = patch_size
+        self.padding = padding
+        self.flip_augmentation = flip_augmentation
 
-        self.images = [
+        self.images_path = [
             'TLS_3d_2021-06-15_11-10-12_reflectance_rect.bsq',
             'TLS_1c_2021-06-15_10-41-20_reflectance_rect.bsq',
             'TLS_3a_2021-06-15_11-10-12_reflectance_rect.bsq',
@@ -24,21 +32,37 @@ class TlseHypDataSet(Dataset):
             'TLS_1e_2021-06-15_10-41-20_reflectance_rect.bsq'
         ]
 
-        self.gt = 'ground_truth.shp'
+        self.gt_path = 'ground_truth.shp'
 
         dirs_in_root = os.listdir(root_path)
         assert ('images' in dirs_in_root) and ('gt' in dirs_in_root), \
             "Root directory should include an 'images' and a 'gt' folder."
 
-        for image in self.images:
-            assert image in os.listdir(os.path.join(root_path, 'images', image)), "Image {} misses".format(image)
+        for image in self.images_path:
+            assert image in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
             header = image[:-3] + 'hdr'
-            assert image in os.listdir(os.path.join(root_path, 'images', header)), "Header {} misses".format(header)
+            assert header in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(header)
 
         for ext in ['cpg', 'dbf', 'shp', 'prj', 'shx']:
-            assert self.gt in os.listdir(os.path.join(root_path, 'gt', self.gt[:-3] + ext))
+            gt_file = self.gt_path[:-3] + ext
+            assert gt_file in os.listdir(os.path.join(root_path, 'GT'))
+
+        self.ground_truth = gpd.read_file(os.path.join(self.root_path, 'GT', self.gt_path))
+
+        self.wv = None
+        self.bbl = None
+        self.E_dir = None
+        self.E_dif = None
+        self.patch_coordinates = [] # dict((k, []) for k in self.ground_truth.index)
 
         self.read_metadata()
+        self.compute_patches()
+
+        self.image_rasters = [gdal.Open(os.path.join(self.root_path, 'images', image_path), gdal.GA_ReadOnly)
+                              for image_path in self.images_path]
+        self.gts_path = rasterize_gt_shapefile(self)
+        self.gt_rasters = dict((att, [gdal.Open(gt_path, gdal.GA_ReadOnly) for gt_path in self.gts_path[att]])
+                               for att in self.gts_path)
 
     def read_metadata(self):
         assert 'metadata.txt' in os.listdir(self.root_path)
@@ -50,14 +74,214 @@ class TlseHypDataSet(Dataset):
         with open(os.path.join(self.root_path, 'metadata.txt'), 'r') as f:
             for i, line in enumerate(f):
                 if i > 0:
-                    self.wv.append(line[0])
-                    self.bbl.append(line[1])
-                    self.E_dir.append(line[2])
-                    self.E_dif.append(line[3])
+                    line = line.split(' ')
+                    self.wv.append(float(line[0]))
+                    self.bbl.append(line[1] == 'True')
+                    self.E_dir.append(float(line[2]))
+                    self.E_dif.append(float(line[3]))
+
+        self.wv = np.array(self.wv)
+        self.bbl = np.array(self.bbl)
+        self.E_dir = np.array(self.E_dir)
+        self.E_dif = np.array(self.E_dif)
+
+    @property
+    def classes(self):
+        gt = gpd.read_file(self.path_gt)
+        classes = np.unique(gt['Material'])
+        classes = classes[~np.isnan(classes)]
+        return classes
+
+    @property
+    def bands(self):
+        """
+        Extract the band numbers and the bad band list from the header of the first image.
+        """
+        bands = tuple(np.where(self.bbl.astype(int) != 0)[0].astype(int) + 1)
+        bands = [int(b) for b in bands]
+        return bands
+
+    @property
+    def labels(self):
+        labels_ = {
+            1: 'Orange tile',
+            2: 'Dark tile',
+            3: 'Slate',
+            4: 'Clear fiber cement',
+            5: 'Dark fiber cement',
+            6: 'Sheet metal - dark painted sheet metal',
+            7: 'Clear painted sheet metal',
+            8: 'Dark asphalt',
+            9: 'Red asphalt',
+            10: 'Beige asphalt',
+            11: 'Green painted asphalt',
+            12: 'White road marking',
+            13: 'Cement',
+            14: 'Brown paving stone',
+            15: 'Clear paving stone',
+            16: 'Pink concrete paving stone',
+            17: 'Clear concrete paving stone',
+            18: 'Running track',
+            19: 'Synthetic grass',
+            20: 'Healthy grass',
+            21: 'Stressed grass',
+            22: 'Tree',
+            23: 'Bare soil',
+            24: 'Bare soil with vegetation',
+            25: 'Cement with gravels',
+            26: 'Gravels',
+            27: 'Rocks',
+            28: 'Green porous concrete',
+            29: 'Red porous concrete',
+            30: 'Seaweed',
+            31: 'Water - swimming pool',
+            32: 'Water',
+            33: 'Sorgho',
+            34: 'Wheat',
+            35: 'Field bean',
+            36: 'Clear plastic cover'
+        }
+        return labels_
+
+    @property
+    def areas(self):
+        """
+
+        :return:
+        """
+        groups = np.unique(self.ground_truth['Group'])
+        n_groups = len(groups)
+        classes = np.unique(self.ground_truth['Material'])
+        classes = classes[1:]
+        n_classes = len(classes)
+        areas = np.zeros((n_groups, n_classes))
+
+        for i in range(len(groups)):
+            for j in range(n_classes):
+                group = groups[i]
+                class_id = classes[j]
+                polygons = self.ground_truth[self.ground_truth['Group'] == group]
+                polygons = polygons[polygons['Material'] == class_id]
+                areas[i, j] = polygons['geometry'].area.sum()
+        return areas.astype(int)
+
+    def split_already_computed(self, p_labeled, p_test):
+        file = 'ground_truth_split_p_labeled_{}_p_test_{}.pkl'.format(p_labeled, p_test)
+        return file in os.listdir(self.root_path)
+
+    def load_splits(self, p_labeled, p_test):
+        file = os.path.join(self.root_path, 'ground_truth_split_p_labeled_{}_p_test_{}.pkl'.format(p_labeled, p_test))
+        with open(os.path.join(self.root_path, file), 'rb') as f:
+            data = pkl.load(f)
+        return data
+
+    def save_splits(self, solutions, p_labeled, p_test):
+        file = os.path.join(self.root_path, 'ground_truth_split_p_labeled_{}_p_test_{}.pkl'.format(p_labeled, p_test))
+        with open(os.path.join(self.root_path, file), 'wb') as f:
+            pkl.dump(solutions, f)
+
+    def compute_patches(self):
+        polygons_by_image = self.ground_truth.groupby(by='Image')
+        groups, images, patch_coordinates = [], [], []
+        for img_id in polygons_by_image.groups:
+            image_path = os.path.join(self.root_path, 'images', self.images_path[img_id-1])
+            raster = gdal.Open(image_path, gdal.GA_ReadOnly)
+            transform = raster.GetGeoTransform()
+            xOrigin = transform[0]
+            yOrigin = transform[3]
+            pixelWidth = transform[1]
+            pixelHeight = -transform[5]
+            # Xgeo = xOrigin + Xpixel*pixelWidth
+            # Xpixel = (Xgeo - xOrigin) / pixelWidth
+            # Ygeo = yOrigin - Yline * pixelHeight
+            # Yline = (yOrigin - Ygeo) / pixelHeight
+            image_bounds = (xOrigin,
+                            yOrigin,
+                            xOrigin + raster.RasterXSize * pixelWidth,
+                            yOrigin - raster.RasterYSize * pixelHeight)
+
+            polygons = polygons_by_image.get_group(img_id)
+            for id, polygon in polygons.iterrows():
+                patches = []
+                bounds = polygon['geometry'].bounds  # min x, min y, max x, max y
+                assert is_polygon_in_rectangle(bounds, image_bounds), "Polygon is not in image"
+
+                left_col = int((bounds[0] - xOrigin) / pixelWidth) - self.padding // 2
+                right_col = int((bounds[2] - xOrigin) / pixelWidth) + self.padding // 2
+                top_row = int((yOrigin - bounds[3]) / pixelHeight) - self.padding // 2
+                bottom_row = int((yOrigin - bounds[1]) / pixelHeight) + self.padding // 2
+
+                width = right_col - left_col
+                height = bottom_row - top_row
+                n_x_patches = int(np.ceil(width / self.patch_size))
+                n_y_patches = int(np.ceil(height / self.patch_size))
+
+                for i in range(n_x_patches):
+                    for j in range(n_y_patches):
+                        patches.append(
+                            tuple((left_col + i * self.patch_size, top_row + j * self.patch_size, self.patch_size, self.patch_size))
+                        )
+                # self.patch_coordinates[id].append(patches)
+                groups.extend([polygon['Group']] * len(patches))
+                images.extend([img_id] * len(patches))
+                patch_coordinates.extend(patches)
+        self.patch_coordinates = np.zeros((len(groups), 6), dtype=int)
+        self.patch_coordinates[:, 0] = images
+        self.patch_coordinates[:, 1] = groups
+        self.patch_coordinates[:, 2:] = patch_coordinates
+
+    @staticmethod
+    def flip(*arrays):
+        horizontal = np.random.random() > 0.5
+        vertical = np.random.random() > 0.5
+        if horizontal:
+            arrays = [np.fliplr(arr) for arr in arrays]
+        if vertical:
+            arrays = [np.flipud(arr) for arr in arrays]
+        return arrays
+
+    def __len__(self):
+        return len(self.patch_coordinates)
+
+    def __getitem__(self, i):
+        i = int(i)
+        image_id = self.patch_coordinates[i, 0]
+        coordinates = self.patch_coordinates[i, 2:]
+        col_offset, row_offset, col_size, row_size = [int(x) for x in coordinates]
+
+        sample = self.image_rasters[image_id-1].ReadAsArray(col_offset, row_offset, col_size, row_size,
+                                                          band_list=dataset.bands)
+        gt = [self.gt_rasters[att][image_id-1].ReadAsArray(col_offset, row_offset, col_size, row_size)
+              for att in self.gt_rasters]
+        gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
+        gt = np.concatenate(gt, axis=-1)
+
+        sample = np.transpose(sample, (1, 2, 0))
+        sample = sample / 10**4
+
+        if self.flip_augmentation and self.patch_size > 1:
+            sample, gt = self.flip(sample, gt)
+
+        sample = np.asarray(np.copy(sample), dtype="float32")
+        gt = np.asarray(np.copy(gt), dtype="int64")
+
+        sample = torch.from_numpy(sample)
+        gt = torch.from_numpy(gt)
+        return sample, gt
 
 
+dataset = TlseHypDataSet('/home/rothor/Documents/ONERA/Datasets/Toulouse', patch_size=100, padding=4, flip_augmentation=True)
+labeled_set, unlabeled_set, test_set = spatial_disjoint_split(dataset, p_labeled=0.05, p_test=0.5)
 
+import matplotlib.pyplot as plt
 
-
-dataset = TlseHypDataSet('/home/rothor/Documents/ONERA/Datasets/Toulouse', patch_size=32)
+for i in range(len(labeled_set)):
+    sample, gt = labeled_set.__getitem__(int(i))
+    fig, ax = plt.subplots(1, 4)
+    ax[0].imshow(sample[:,:,40])
+    ax[1].imshow(gt[:,:,0])
+    ax[2].imshow(gt[:,:,1])
+    ax[3].imshow(gt[:,:,2])
+    plt.title(i)
+    plt.show()
 
