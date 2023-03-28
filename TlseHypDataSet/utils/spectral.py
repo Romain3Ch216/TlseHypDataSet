@@ -1,3 +1,5 @@
+import pdb
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -29,7 +31,7 @@ class SpectralWrapper(nn.Module):
             B += model.n_channels
 
         keys = list(z.keys())
-        out = torch.cat([z[keys[i]] for i in range(len(z))], dim=1)
+        out = torch.cat([torch.from_numpy(z[keys[i]]) for i in range(len(z))], dim=1)
 
         return out
 
@@ -47,3 +49,32 @@ def get_continuous_bands(bbl: np.ndarray) -> List[int]:
 
     n_bands.append(s)
     return n_bands
+
+
+class SpectralIndex:
+    """
+    Generic class for spectral indices
+    """
+    def __init__(self, wv: np.ndarray, epsilon: float = 1e-4):
+        self.wv = torch.from_numpy(wv).view(1, -1)
+        self.epsilon = epsilon
+        self.dim = 1
+
+    def _get_bands(self, lambdas: List[float]) -> List[int]:
+        """
+        :args: wavelengths of the spectral index
+        :return: closest bands to the given wavelengths
+        """
+        wv = self.wv.repeat(len(lambdas), 1)
+        lambdas = torch.Tensor(lambdas).view(-1, 1)
+        diff = torch.abs(lambdas - wv)
+        bands = torch.argmin(diff, dim=1)
+        return bands
+
+    def ceil(self, index: torch.Tensor) -> torch.Tensor:
+        return torch.clamp(index, min=-6, max=6)
+
+    def __call__(self, data):
+        raise NotImplementedError
+
+

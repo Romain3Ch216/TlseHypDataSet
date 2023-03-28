@@ -11,19 +11,23 @@ from osgeo import gdal
 import rasterio
 from rasterio.features import rasterize
 from utils.utils import make_dirs
-from utils.geometry import is_polygon_in_rectangle, flip_array
+from utils.geometry import is_polygon_in_rectangle
 from utils.dataset import spatial_disjoint_split
+from torchvision import transforms
+
 
 
 class TlseHypDataSet(Dataset):
     """
 
     """
-    def __init__(self, root_path: str, patch_size: int, padding: int, flip_augmentation: bool):
+    def __init__(self, root_path: str,
+                 patch_size: int,
+                 padding: int):
         self.root_path = root_path
         self.patch_size = patch_size
         self.padding = padding
-        self.flip_augmentation = flip_augmentation
+        self.transform = None
 
         self.images_path = [
             'TLS_3d_2021-06-15_11-10-12_reflectance_rect.bsq',
@@ -68,6 +72,7 @@ class TlseHypDataSet(Dataset):
         self.gt_rasters = dict((att, [gdal.Open(gt_path, gdal.GA_ReadOnly) for gt_path in self.gts_path[att]])
                                for att in self.gts_path)
 
+
     def read_metadata(self):
         self.wv = []
         self.bbl = []
@@ -83,10 +88,11 @@ class TlseHypDataSet(Dataset):
                     self.E_dir.append(float(line[2]))
                     self.E_dif.append(float(line[3]))
 
-        self.wv = np.array(self.wv)
         self.bbl = np.array(self.bbl)
         self.E_dir = np.array(self.E_dir)
         self.E_dif = np.array(self.E_dif)
+        self.wv = np.array(self.wv)
+        self.wv = self.wv[self.bbl]
 
     @property
     def classes(self):
@@ -288,26 +294,43 @@ class TlseHypDataSet(Dataset):
         sample = np.transpose(sample, (1, 2, 0))
         sample = sample / 10**4
 
-        if self.flip_augmentation and self.patch_size > 1:
-            sample, gt = flip_array(sample, gt)
-
         sample = np.asarray(np.copy(sample), dtype="float32")
         gt = np.asarray(np.copy(gt), dtype="int64")
 
         sample = torch.from_numpy(sample)
         gt = torch.from_numpy(gt)
+
+        if self.transform is not None:
+            sample, gt = self.transform((sample, gt))
+
         return sample, gt
 
 
-dataset = TlseHypDataSet('/home/rothor/Documents/ONERA/Datasets/Toulouse', patch_size=100, padding=4, flip_augmentation=True)
+from utils.transforms import RandomFlip, GaussianFilter, SpectralIndices, GaborFilters, Concat, Stats
+
+dataset = TlseHypDataSet(
+    '/home/rothor/Documents/ONERA/Datasets/Toulouse',
+    patch_size=64,
+    padding=4)
+
+dataset.transform = transforms.Compose([
+    GaussianFilter(dataset.bbl, sigma=1.5),
+    Concat([
+        SpectralIndices(dataset.wv),
+        GaborFilters()
+        ]),
+    Stats()
+])
+
 labeled_set, unlabeled_set, test_set = spatial_disjoint_split(dataset, p_labeled=0.05, p_test=0.5)
 
 import matplotlib.pyplot as plt
 
 for i in range(len(labeled_set)):
     sample, gt = labeled_set.__getitem__(int(i))
+    pdb.set_trace()
     fig, ax = plt.subplots(1, 4)
-    ax[0].imshow(sample[:,:,40])
+    ax[0].imshow(sample[:,:,0])
     ax[1].imshow(gt[:,:,0])
     ax[2].imshow(gt[:,:,1])
     ax[3].imshow(gt[:,:,2])

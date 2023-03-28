@@ -14,6 +14,7 @@ class HyperspectralDataSet(Dataset):
         self.root_path = root_path
         self.patch_size = patch_size
         self.min_overlapping = min_overlapping
+        self.transform = None
 
         self.image_path = None
         self.gt_path = None
@@ -91,8 +92,8 @@ class HyperspectralDataSet(Dataset):
         sample = torch.from_numpy(sample)
         sample = sample / 10**4
 
-        # if self.transform:
-        #     data, extent, neighbours_extent = self.transform((data, extent, []))
+        if self.transform is not None:
+            sample, gt = self.transform((sample, gt))
         return sample, gt
 
 
@@ -122,17 +123,32 @@ class PaviaU(HyperspectralDataSet):
         gt = io.loadmat(os.path.join(self.root_path, 'PaviaU_gt.mat'))["paviaU_gt"]
         return img, gt
 
+from utils.transforms import RandomFlip, GaussianFilter, SpectralIndices, GaborFilters, Concat, Stats
+from torchvision import transforms
+
 dataset = PaviaU('/home/rothor/Documents/ONERA/Datasets/PaviaU', patch_size=64, min_overlapping=0)
+
+dataset.transform = transforms.Compose([
+    GaussianFilter(dataset.bbl, sigma=1.5),
+    Concat([
+        SpectralIndices(dataset.wv),
+        GaborFilters()
+        ]),
+    Stats()
+])
+
+sample, gt = dataset.__getitem__(0)
+pdb.set_trace()
 import matplotlib.pyplot as plt
 
-fig = plt.figure()
-sample, gt = dataset.__getitem__(0)
-plt.imshow(sample[:,:,40])
-plt.show()
-
-fig = plt.figure()
-plt.plot(sample[10, 10, :])
-plt.show()
-
-import pdb
-pdb.set_trace()
+# fig = plt.figure()
+# sample, gt = dataset.__getitem__(0)
+# plt.imshow(sample[:, :, 40])
+# plt.show()
+#
+# fig = plt.figure()
+# plt.plot(sample[10, 10, :])
+# plt.show()
+#
+# import pdb
+# pdb.set_trace()
