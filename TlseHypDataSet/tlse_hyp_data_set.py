@@ -1,3 +1,5 @@
+import pdb
+
 import torch
 from torch.utils.data import Dataset
 import os
@@ -67,13 +69,12 @@ class TlseHypDataSet(Dataset):
                                for att in self.gts_path)
 
     def read_metadata(self):
-        assert 'metadata.txt' in os.listdir(self.root_path)
         self.wv = []
         self.bbl = []
         self.E_dir = []
         self.E_dif = []
 
-        with open(os.path.join(self.root_path, 'metadata.txt'), 'r') as f:
+        with open('../TlseHypDataSet/metadata/tlse_metadata.txt', 'r') as f:
             for i, line in enumerate(f):
                 if i > 0:
                     line = line.split(' ')
@@ -312,4 +313,6 @@ for i in range(len(labeled_set)):
     ax[3].imshow(gt[:,:,2])
     plt.title(i)
     plt.show()
+
+    pdb.set_trace()
 

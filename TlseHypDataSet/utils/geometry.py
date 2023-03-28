@@ -26,3 +26,21 @@ def flip_array(*arrays):
         if vertical:
             arrays = [np.flipud(arr) for arr in arrays]
         return arrays
+
+
+def ceil_int(x: float) -> int:
+    return int(np.ceil(x))
+
+
+def _compute_number_of_tiles(tile_size: int, image_size: int, overlapping: int) -> int:
+    return ceil_int(image_size * 1.0 / (tile_size - overlapping))
+
+
+def _compute_float_overlapping(tile_size, image_size, n):
+    """
+        Method to float overlapping
+
+        delta = tile_size * n - image_size
+        overlapping = delta / (n - 1)
+    """
+    return (tile_size * n - image_size) * 1.0 / (n - 1.0)
