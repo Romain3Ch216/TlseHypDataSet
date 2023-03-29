@@ -53,7 +53,6 @@ class HyperspectralDataSet(Dataset):
             gt = self.gt[extent[0]: extent[0] + extent[2], extent[1]: extent[1] + extent[3]]
             if gt.sum() > 0:
                 indices.append(idx)
-        self._max_index = len(indices)
         return indices
 
     def _get_tile_extent(self, idx: int) -> Union[Sequence[int], int, int]:
@@ -72,11 +71,11 @@ class HyperspectralDataSet(Dataset):
         return [x_tile_offset, y_tile_offset, self.patch_size, self.patch_size], x_tile_index, y_tile_index
 
     def __len__(self):
-        return len(self._valid_indices)
+        return len(self.indices)
 
     def __getitem__(self, idx: int) -> Union[np.ndarray, Sequence[int]]:
-        if idx < 0 or idx >= len(self):
-            raise IndexError("Index is out of range")
+        # if idx < 0 or idx >= len(self):
+        #     raise IndexError("Index is out of range")
         idx = self.indices[idx]
 
         # Define ROI to extract
@@ -122,33 +121,3 @@ class PaviaU(HyperspectralDataSet):
         img = io.loadmat(os.path.join(self.root_path, 'PaviaU.mat'))["paviaU"]
         gt = io.loadmat(os.path.join(self.root_path, 'PaviaU_gt.mat'))["paviaU_gt"]
         return img, gt
-
-from utils.transforms import RandomFlip, GaussianFilter, SpectralIndices, GaborFilters, Concat, Stats
-from torchvision import transforms
-
-dataset = PaviaU('/home/rothor/Documents/ONERA/Datasets/PaviaU', patch_size=64, min_overlapping=0)
-
-dataset.transform = transforms.Compose([
-    GaussianFilter(dataset.bbl, sigma=1.5),
-    Concat([
-        SpectralIndices(dataset.wv),
-        GaborFilters()
-        ]),
-    Stats()
-])
-
-sample, gt = dataset.__getitem__(0)
-pdb.set_trace()
-import matplotlib.pyplot as plt
-
-# fig = plt.figure()
-# sample, gt = dataset.__getitem__(0)
-# plt.imshow(sample[:, :, 40])
-# plt.show()
-#
-# fig = plt.figure()
-# plt.plot(sample[10, 10, :])
-# plt.show()
-#
-# import pdb
-# pdb.set_trace()

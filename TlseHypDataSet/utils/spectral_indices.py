@@ -7,7 +7,7 @@ class Identity(SpectralIndex):
     """
     Returns identity for given spectral bands
     """
-    def __init__(self, wv: np.ndarray, chunk: int = 10):
+    def __init__(self, wv: np.ndarray, chunk: int = 20):
         super().__init__(wv)
         self.bands = np.linspace(0, len(wv)-1, chunk).astype(int)
         self.dim = len(self.bands)

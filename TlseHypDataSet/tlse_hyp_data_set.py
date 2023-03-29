@@ -285,7 +285,7 @@ class TlseHypDataSet(Dataset):
         col_offset, row_offset, col_size, row_size = [int(x) for x in coordinates]
 
         sample = self.image_rasters[image_id-1].ReadAsArray(col_offset, row_offset, col_size, row_size,
-                                                          band_list=dataset.bands)
+                                                          band_list=self.bands)
         gt = [self.gt_rasters[att][image_id-1].ReadAsArray(col_offset, row_offset, col_size, row_size)
               for att in self.gt_rasters]
         gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
@@ -304,38 +304,3 @@ class TlseHypDataSet(Dataset):
             sample, gt = self.transform((sample, gt))
 
         return sample, gt
-
-
-from utils.transforms import RandomFlip, GaussianFilter, SpectralIndices, GaborFilters, Concat, Stats
-
-dataset = TlseHypDataSet(
-    '/home/rothor/Documents/ONERA/Datasets/Toulouse',
-    patch_size=64,
-    padding=4)
-
-dataset.transform = transforms.Compose([
-    GaussianFilter(dataset.bbl, sigma=1.5),
-    Concat([
-        SpectralIndices(dataset.wv),
-        GaborFilters()
-        ]),
-    Stats()
-])
-
-labeled_set, unlabeled_set, test_set = spatial_disjoint_split(dataset, p_labeled=0.05, p_test=0.5)
-
-import matplotlib.pyplot as plt
-
-for i in range(len(labeled_set)):
-    sample, gt = labeled_set.__getitem__(int(i))
-    pdb.set_trace()
-    fig, ax = plt.subplots(1, 4)
-    ax[0].imshow(sample[:,:,0])
-    ax[1].imshow(gt[:,:,0])
-    ax[2].imshow(gt[:,:,1])
-    ax[3].imshow(gt[:,:,2])
-    plt.title(i)
-    plt.show()
-
-    pdb.set_trace()
-
