@@ -1,5 +1,3 @@
-import pdb
-
 import torch
 from torch.utils.data import Dataset
 from utils.geometry import _compute_number_of_tiles, _compute_float_overlapping, ceil_int
