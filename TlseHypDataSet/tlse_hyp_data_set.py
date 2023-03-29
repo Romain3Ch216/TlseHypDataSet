@@ -10,6 +10,9 @@ import rasterio
 from rasterio.features import rasterize
 from TlseHypDataSet.utils.geometry import is_polygon_in_rectangle
 from TlseHypDataSet.utils.utils import make_dirs
+import pkgutil
+import csv
+
 
 __all__ = [
     'TlseHypDataSet'
@@ -78,20 +81,21 @@ class TlseHypDataSet(Dataset):
         self.E_dir = []
         self.E_dif = []
 
-        # with open('/TlseHypDataSet/metadata/tlse_metadata.txt', 'r') as f:
-        #     for i, line in enumerate(f):
-        #         if i > 0:
-        #             line = line.split(' ')
-        #             self.wv.append(float(line[0]))
-        #             self.bbl.append(line[1] == 'True')
-        #             self.E_dir.append(float(line[2]))
-        #             self.E_dif.append(float(line[3]))
-        #
-        # self.bbl = np.array(self.bbl)
-        # self.E_dir = np.array(self.E_dir)
-        # self.E_dif = np.array(self.E_dif)
-        # self.wv = np.array(self.wv)
-        # self.wv = self.wv[self.bbl]
+        metadata = pkgutil.get_data(__name__, "metadata/tlse_metadata.txt")
+        data_reader = csv.reader(metadata.decode('utf-8').splitlines(), delimiter=' ')
+
+        for i, line in enumerate(data_reader):
+            if i > 0:
+                self.wv.append(float(line[0]))
+                self.bbl.append(line[1] == 'True')
+                self.E_dir.append(float(line[2]))
+                self.E_dif.append(float(line[3]))
+
+        self.bbl = np.array(self.bbl)
+        self.E_dir = np.array(self.E_dir)
+        self.E_dif = np.array(self.E_dif)
+        self.wv = np.array(self.wv)
+        self.wv = self.wv[self.bbl]
 
     @property
     def classes(self):

@@ -9,6 +9,7 @@ setup(
     author_email='romain.thoreau@onera.fr',
     packages=['TlseHypDataSet', 'TlseHypDataSet/utils'],
     package_dir={'TlseHypDataSet': 'TlseHypDataSet'},
+    include_package_data=True,
     install_requires=['numpy==1.19.5',
                       'torch==1.7.1',
                       'gdal==3.3.2',
