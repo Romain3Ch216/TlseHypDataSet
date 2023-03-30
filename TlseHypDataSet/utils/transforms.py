@@ -3,8 +3,8 @@ import pdb
 import torch
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
-from utils.spectral import SpectralWrapper, get_continuous_bands
-from utils.spectral_indices import *
+from TlseHypDataSet.utils.spectral import SpectralWrapper, get_continuous_bands
+from TlseHypDataSet.utils.spectral_indices import *
 from skimage.filters import gabor
 from torchvision import transforms
 

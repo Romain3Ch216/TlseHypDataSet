@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import Dataset
-from utils.geometry import _compute_number_of_tiles, _compute_float_overlapping, ceil_int
+from TlseHypDataSet.utils.geometry import _compute_number_of_tiles, _compute_float_overlapping, ceil_int
 from typing import Union, Sequence, List
 import numpy as np
 from scipy import io
@@ -97,6 +97,7 @@ class HyperspectralDataSet(Dataset):
 class PaviaU(HyperspectralDataSet):
     def __init__(self, root_path: str, patch_size: int, min_overlapping: int):
         super().__init__(root_path, patch_size, min_overlapping)
+        self.name = 'PaviaU'
 
     @property
     def labels(self):

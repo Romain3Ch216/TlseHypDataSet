@@ -1,82 +1,75 @@
 import torch
 from torchvision import transforms
-from utils.transforms import RandomFlip, GaussianFilter, SpectralIndices, GaborFilters, Concat, Stats
-from tlse_hyp_data_set import TlseHypDataSet
-from other_data_sets import PaviaU
+from TlseHypDataSet.utils.transforms import RandomFlip, GaussianFilter, SpectralIndices, GaborFilters, Concat, Stats
+from TlseHypDataSet.other_data_sets import PaviaU
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from TlseHypDataSet.utils.utils import make_dirs
+import os
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
 
 
-compute_features = False
-if compute_features:
-    dataset = TlseHypDataSet(
-        '/home/rothor/Documents/ONERA/Datasets/Toulouse',
-        patch_size=64,
-        padding=4)
+__all__ = [
+    'project_features'
+]
 
-    dataset.transform = transforms.Compose([
-        GaussianFilter(dataset.bbl, sigma=1.5),
-        Concat([
-            SpectralIndices(dataset.wv),
-            GaborFilters()
-            ]),
-        Stats()
-    ])
 
+def compute_dataset_features(dataset):
+    path = os.path.join(dataset.root_path, 'outputs', 'data_set_features.npy')
+    if 'outputs' in os.listdir(dataset.root_path) and path in os.listdir(os.path.join(dataset.root_path, 'outputs')):
+        features = np.load(path)
+    else:
+        if dataset.name == 'Toulouse':
+            dataset.transform = transforms.Compose([
+                GaussianFilter(dataset.bbl, sigma=1.5),
+                Concat([
+                    SpectralIndices(dataset.wv),
+                    GaborFilters()
+                    ]),
+                Stats()
+            ])
+
+        elif dataset.name == 'PaviaU':
+            dataset.transform = transforms.Compose([
+                Concat([
+                    SpectralIndices(dataset.wv),
+                    GaborFilters()
+                    ]),
+                Stats()
+            ])
+
+        features = []
+        for i in tqdm(range(len(dataset)), total=len(dataset)):
+            sample, gt = dataset.__getitem__(i)
+            features.append(sample)
+
+        features = torch.cat(features)
+        features = features.numpy()
+        make_dirs([os.path.join(dataset.root_path, 'outputs')])
+        np.save(path, features)
+    return features
+
+
+def project_features(datasets, proj='TSNE'):
+    colors = ['green', 'blue', 'orange']
     features = []
+    set_id = []
+    for i, dataset in enumerate(datasets):
+        data_features = compute_dataset_features(dataset)
+        features.extend(data_features)
+        set_id.extend([i] * len(data_features))
+    set_id = np.array(set_id)
 
-    for i in tqdm(range(len(dataset)), total=len(dataset)):
-        sample, gt = dataset.__getitem__(i)
-        features.append(sample)
+    if proj == 'TSNE':
+        proj = TSNE(n_components=2).fit_transform(features)
+    elif proj == 'PCA':
+        proj = PCA(n_components=2).fit_transform(features)
 
-    features = torch.cat(features)
-    features = features.numpy()
-    np.save('/home/rothor/Documents/ONERA/Datasets/Toulouse/DataSetComparison/tlse_features.npy', features)
+    fig = plt.figure()
+    for i in range(len(datasets)):
+        plt.scatter(proj[set_id == i, 0], proj[set_id == i, 1], color=colors[i], alpha=0.3)
+    plt.show()
 
-    dataset = PaviaU('/home/rothor/Documents/ONERA/Datasets/PaviaU',
-                     patch_size=64,
-                     min_overlapping=0)
-
-
-    dataset.transform = transforms.Compose([
-        Concat([
-            SpectralIndices(dataset.wv),
-            GaborFilters()
-            ]),
-        Stats()
-    ])
-
-    features = []
-
-    for i in tqdm(range(len(dataset)), total=len(dataset)):
-        sample, gt = dataset.__getitem__(i)
-        features.append(sample)
-
-    features = torch.cat(features)
-    features = features.numpy()
-    np.save('/home/rothor/Documents/ONERA/Datasets/Toulouse/DataSetComparison/paviau_features.npy', features)
-
-tlse_features = np.load('/home/rothor/Documents/ONERA/Datasets/Toulouse/DataSetComparison/tlse_features.npy')
-pavia_features = np.load('/home/rothor/Documents/ONERA/Datasets/Toulouse/DataSetComparison/paviau_features.npy')
-
-features = np.concatenate((tlse_features, pavia_features), axis=0)
-data_sets = np.concatenate((np.zeros(tlse_features.shape[0]), np.ones(pavia_features.shape[0])), axis=0)
-
-TSNE = True
-if TSNE:
-    from sklearn.manifold import TSNE
-    proj = TSNE(n_components=2).fit_transform(features)
-
-else:
-    from sklearn.decomposition import PCA
-    proj = PCA(n_components=2).fit_transform(features)
-
-tlse_proj = proj[data_sets == 0]
-pavia_proj = proj[data_sets == 1]
-
-fig = plt.figure()
-plt.scatter(tlse_proj[:, 0], tlse_proj[:, 1], color='green', alpha=0.3)
-plt.scatter(pavia_proj[:, 0], pavia_proj[:, 1], color='blue', alpha=0.3)
-plt.show()
 

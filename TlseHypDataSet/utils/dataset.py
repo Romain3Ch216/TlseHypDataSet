@@ -13,7 +13,11 @@ __all__ = [
 
 def spatial_disjoint_split(dataset, p_labeled, p_test):
     split = sat_split_solver(dataset, p_labeled, p_test)
-    groups = np.unique(dataset.patch_coordinates[:, 1])
+    groups = np.unique(dataset.samples[:, 1])
+    # all_groups include groups with no labeled Material
+    all_groups = np.unique(dataset.ground_truth['Group'])
+    mask = np.array([x in groups for x in all_groups])
+    split = split[mask]
     labeled_set = Subset(dataset, groups[split == 0])
     unlabeled_set = Subset(dataset, groups[split == 1])
     test_set = Subset(dataset, groups[split == 2])

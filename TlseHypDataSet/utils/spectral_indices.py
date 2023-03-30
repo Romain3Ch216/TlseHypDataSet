@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from utils.spectral import SpectralIndex
+from TlseHypDataSet.utils.spectral import SpectralIndex
 
 
 class Identity(SpectralIndex):

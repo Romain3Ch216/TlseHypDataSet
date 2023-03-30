@@ -1,3 +1,5 @@
+import pdb
+
 import torch
 from torch.utils.data import Dataset
 import os
@@ -24,11 +26,17 @@ class TlseHypDataSet(Dataset):
 
     """
     def __init__(self, root_path: str,
+                 pred_mode: str,
                  patch_size: int,
-                 padding: int):
+                 padding: int = 0,
+                 low_level_only: bool = False):
+
+        self.name = 'Toulouse'
         self.root_path = root_path
+        self.pred_mode = pred_mode
         self.patch_size = patch_size
         self.padding = padding
+        self.low_level_only = low_level_only
         self.transform = None
 
         self.images_path = [
@@ -63,10 +71,10 @@ class TlseHypDataSet(Dataset):
         self.bbl = None
         self.E_dir = None
         self.E_dif = None
-        self.patch_coordinates = [] # dict((k, []) for k in self.ground_truth.index)
+        self.n_bands = None
+        self.samples = None
 
         self.read_metadata()
-        self.compute_patches()
 
         self.image_rasters = [gdal.Open(os.path.join(self.root_path, 'images', image_path), gdal.GA_ReadOnly)
                               for image_path in self.images_path]
@@ -74,6 +82,12 @@ class TlseHypDataSet(Dataset):
         self.gt_rasters = dict((att, [gdal.Open(gt_path, gdal.GA_ReadOnly) for gt_path in self.gts_path[att]])
                                for att in self.gts_path)
 
+        if pred_mode == 'patch':
+            self.compute_patches()
+        elif pred_mode == 'pixel':
+            self.compute_pixels()
+        else:
+            raise ValueError("pred_mode is either patch or pixel.")
 
     def read_metadata(self):
         self.wv = []
@@ -96,6 +110,7 @@ class TlseHypDataSet(Dataset):
         self.E_dif = np.array(self.E_dif)
         self.wv = np.array(self.wv)
         self.wv = self.wv[self.bbl]
+        self.n_bands = self.bbl.sum()
 
     @property
     def classes(self):
@@ -103,6 +118,10 @@ class TlseHypDataSet(Dataset):
         classes = np.unique(gt['Material'])
         classes = classes[~np.isnan(classes)]
         return classes
+
+    @property
+    def n_classes(self):
+        return len(self.labels)
 
     @property
     def bands(self):
@@ -193,19 +212,21 @@ class TlseHypDataSet(Dataset):
                 else:
                     yield gt.loc[indices[i], 'geometry'], int(gt.loc[indices[i], attribute])
 
-        for attribute in ['Material', 'Class_2', 'Class_1']:
+        for attribute in ['Material', 'Class_2', 'Class_1', 'Group']:
             paths[attribute] = []
+            dtype = 'uint16' if attribute == 'Group' else 'uint8'
+            rasterio_dtype = rasterio.uint16 if dtype == 'uint16' else rasterio.uint8
             for id, img_path in enumerate(self.images_path):
                 path = os.path.join(self.root_path, 'rasters', 'gt_{}_{}.bsq'.format(attribute, id))
                 img = rasterio.open(os.path.join(self.root_path, 'images', img_path))
                 shape = img.shape
-                data = rasterize(shapes(gt.groupby(by='Image').get_group(id + 1), attribute), shape[:2], dtype='uint8',
+                data = rasterize(shapes(gt.groupby(by='Image').get_group(id + 1), attribute), shape[:2], dtype=dtype,
                                  transform=img.transform)
                 data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
                 with rasterio.Env():
                     profile = img.profile
                     profile.update(
-                        dtype=rasterio.uint8,
+                        dtype=rasterio_dtype,
                         count=1,
                         compress='lzw')
                     with rasterio.open(path, 'w', **profile) as dst:
@@ -215,7 +236,12 @@ class TlseHypDataSet(Dataset):
 
     def split_already_computed(self, p_labeled, p_test):
         file = 'ground_truth_split_p_labeled_{}_p_test_{}.pkl'.format(p_labeled, p_test)
-        return file in os.listdir(self.root_path)
+        already_computed = file in os.listdir(self.root_path)
+        if already_computed:
+            print('Data sets split is already computed')
+        else:
+            print('Computing data sets split...')
+        return already_computed
 
     def load_splits(self, p_labeled, p_test):
         file = os.path.join(self.root_path, 'ground_truth_split_p_labeled_{}_p_test_{}.pkl'.format(p_labeled, p_test))
@@ -250,41 +276,68 @@ class TlseHypDataSet(Dataset):
 
             polygons = polygons_by_image.get_group(img_id)
             for id, polygon in polygons.iterrows():
-                patches = []
-                bounds = polygon['geometry'].bounds  # min x, min y, max x, max y
-                assert is_polygon_in_rectangle(bounds, image_bounds), "Polygon is not in image"
+                if (self.low_level_only is False) or (polygon['Material'] != 0):
+                    patches = []
+                    bounds = polygon['geometry'].bounds  # min x, min y, max x, max y
+                    assert is_polygon_in_rectangle(bounds, image_bounds), "Polygon is not in image"
 
-                left_col = int((bounds[0] - xOrigin) / pixelWidth) - self.padding // 2
-                right_col = int((bounds[2] - xOrigin) / pixelWidth) + self.padding // 2
-                top_row = int((yOrigin - bounds[3]) / pixelHeight) - self.padding // 2
-                bottom_row = int((yOrigin - bounds[1]) / pixelHeight) + self.padding // 2
+                    left_col = int((bounds[0] - xOrigin) / pixelWidth) - self.padding // 2
+                    right_col = int((bounds[2] - xOrigin) / pixelWidth) + self.padding // 2
+                    top_row = int((yOrigin - bounds[3]) / pixelHeight) - self.padding // 2
+                    bottom_row = int((yOrigin - bounds[1]) / pixelHeight) + self.padding // 2
 
-                width = right_col - left_col
-                height = bottom_row - top_row
-                n_x_patches = int(np.ceil(width / self.patch_size))
-                n_y_patches = int(np.ceil(height / self.patch_size))
+                    width = right_col - left_col
+                    height = bottom_row - top_row
+                    n_x_patches = int(np.ceil(width / self.patch_size))
+                    n_y_patches = int(np.ceil(height / self.patch_size))
 
-                for i in range(n_x_patches):
-                    for j in range(n_y_patches):
-                        patches.append(
-                            tuple((left_col + i * self.patch_size, top_row + j * self.patch_size, self.patch_size, self.patch_size))
-                        )
+                    for i in range(n_x_patches):
+                        for j in range(n_y_patches):
+                            patches.append(
+                                tuple((left_col + i * self.patch_size, top_row + j * self.patch_size, self.patch_size, self.patch_size))
+                            )
 
-                groups.extend([polygon['Group']] * len(patches))
-                images.extend([img_id] * len(patches))
-                patch_coordinates.extend(patches)
-        self.patch_coordinates = np.zeros((len(groups), 6), dtype=int)
-        self.patch_coordinates[:, 0] = images
-        self.patch_coordinates[:, 1] = groups
-        self.patch_coordinates[:, 2:] = patch_coordinates
+                    groups.extend([polygon['Group']] * len(patches))
+                    images.extend([img_id] * len(patches))
+                    patch_coordinates.extend(patches)
+
+        self.samples = np.zeros((len(groups), 6), dtype=int)
+        self.samples[:, 0] = images
+        self.samples[:, 1] = groups
+        self.samples[:, 2:] = patch_coordinates
+
+    def compute_pixels(self):
+        group_list, col_list, row_list, img_list = [], [], [], []
+        for img_id, (gt, groups) in enumerate(zip(self.gt_rasters['Material'], self.gt_rasters['Group'])):
+            gt = gt.ReadAsArray(gdal.GA_ReadOnly)
+            groups = groups.ReadAsArray(gdal.GA_ReadOnly)
+            coords = np.where(gt != 0)
+            groups = groups[coords]
+            img_list.extend([img_id] * len(groups))
+            group_list.extend(groups)
+            col_offset = coords[1] - self.patch_size//2
+            row_offset = coords[0] - self.patch_size//2
+            col_list.extend(col_offset)
+            row_list.extend(row_offset)
+
+        self.samples = np.zeros((len(group_list), 6), dtype=int)
+        self.samples[:, 0] = img_list
+        self.samples[:, 1] = group_list
+        self.samples[:, 2] = col_list
+        self.samples[:, 3] = row_list
+        self.samples[:, 4] = self.patch_size
+        self.samples[:, 5] = self.patch_size
 
     def __len__(self):
-        return len(self.patch_coordinates)
+        if self.pred_mode == 'patch':
+            return len(self.patch_coordinates)
+        elif self.pred_mode == 'pixel':
+            return len(self.pixel_coordinates)
 
     def __getitem__(self, i):
         i = int(i)
-        image_id = self.patch_coordinates[i, 0]
-        coordinates = self.patch_coordinates[i, 2:]
+        image_id = self.samples[i, 0]
+        coordinates = self.samples[i, 2:]
         col_offset, row_offset, col_size, row_size = [int(x) for x in coordinates]
 
         sample = self.image_rasters[image_id-1].ReadAsArray(col_offset, row_offset, col_size, row_size,
@@ -302,6 +355,10 @@ class TlseHypDataSet(Dataset):
 
         sample = torch.from_numpy(sample)
         gt = torch.from_numpy(gt)
+
+        if self.patch_size == 1:
+            sample = sample.squeeze(1)
+            gt = gt.squeeze(1)
 
         if self.transform is not None:
             sample, gt = self.transform((sample, gt))
