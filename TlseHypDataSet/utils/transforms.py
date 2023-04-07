@@ -8,7 +8,6 @@ from TlseHypDataSet.utils.spectral_indices import *
 from skimage.filters import gabor
 from torchvision import transforms
 
-
 __all__ = [
     'RandomFlip',
     'GaussianFilter',
@@ -31,6 +30,7 @@ class GaussianFilter(object):
     """
 
     """
+
     def __init__(self, bbl: np.ndarray, sigma: float):
         n_bands = get_continuous_bands(bbl)
         filters = {}
@@ -51,6 +51,7 @@ class RandomFlip(object):
     """
 
     """
+
     def __init__(self, p=0.5):
         self.p = p
 
@@ -75,6 +76,7 @@ class SpectralIndices(object):
     Class like a Transform object from Pytorch Torchvision
     to compute spectral indices
     """
+
     def __init__(self, wv: np.ndarray):
         self.spectral_indices = (
             NDVI(wv),
@@ -96,9 +98,9 @@ class SpectralIndices(object):
         for i, spectral_index in enumerate(self.spectral_indices):
             index = spectral_index(sample)
             if len(index.shape) > 2:
-                features[:, :, i:i+spectral_index.dim] = index
+                features[:, :, i:i + spectral_index.dim] = index
             else:
-                features[:, :, i:i+spectral_index.dim] = index.unsqueeze(-1)
+                features[:, :, i:i + spectral_index.dim] = index.unsqueeze(-1)
         return features, gt
 
 
@@ -107,10 +109,11 @@ class GaborFilters(object):
     Class like a Transform object from Pytorch Torchvision
     to compute Gabor filters
     """
+
     def __init__(self, n_frequencies: int = 4):
         self.n_frequencies = n_frequencies
         self.frequencies = np.linspace(0.1, 1, n_frequencies)
-        self.thetas = np.linspace(0, np.pi/2, n_frequencies)
+        self.thetas = np.linspace(0, np.pi / 2, n_frequencies)
 
     def __call__(self, data):
         """
@@ -120,13 +123,14 @@ class GaborFilters(object):
         sample, gt = data
         sample = sample.numpy()
         sample = np.mean(sample, axis=-1)
-        features = torch.zeros((sample.shape[0], sample.shape[1], self.n_frequencies**2))
+        features = torch.zeros((sample.shape[0], sample.shape[1], self.n_frequencies ** 2))
         k = 0
         for freq in self.frequencies:
             for theta in self.thetas:
                 real, imag = gabor(sample, frequency=freq, theta=theta)
                 feature = real + imag
-                feature = (feature-np.min(feature, axis=(0,1)))/(np.max(feature, axis=(0,1))-np.min(feature, axis=(0,1)))
+                feature = (feature - np.min(feature, axis=(0, 1))) / (
+                            np.max(feature, axis=(0, 1)) - np.min(feature, axis=(0, 1)))
                 features[:, :, k] = torch.from_numpy(feature)
                 k += 1
         return features, gt
@@ -137,6 +141,7 @@ class Stats(object):
     Class like a Transform object from Pytorch Torchvision
     to compute statistics over a 2D image
     """
+
     def __init__(self):
         self.statistics = (
             lambda x: torch.mean(x, dim=(0, 1)),
@@ -179,3 +184,4 @@ class Concat(transforms.Compose):
             sample, _ = t((sample, gt))
             out.append(sample)
         return torch.cat(out, dim=-1), gt
+

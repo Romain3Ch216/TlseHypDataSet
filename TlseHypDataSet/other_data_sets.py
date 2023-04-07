@@ -1,3 +1,5 @@
+import pdb
+
 import torch
 from torch.utils.data import Dataset
 from TlseHypDataSet.utils.geometry import _compute_number_of_tiles, _compute_float_overlapping, ceil_int
@@ -5,7 +7,8 @@ from typing import Union, Sequence, List
 import numpy as np
 from scipy import io
 import os
-
+import rasterio
+from rasterio.warp import reproject, Resampling
 
 class HyperspectralDataSet(Dataset):
     def __init__(self, root_path: str, patch_size: int, min_overlapping: int):
@@ -16,7 +19,6 @@ class HyperspectralDataSet(Dataset):
 
         self.image_path = None
         self.gt_path = None
-        self.wv = np.linspace(0.43, 0.86, 103)
         self.bbl = None
         self.E_dir = None
         self.E_dif = None
@@ -95,14 +97,14 @@ class HyperspectralDataSet(Dataset):
 
 
 class PaviaU(HyperspectralDataSet):
-    def __init__(self, root_path: str, patch_size: int, min_overlapping: int):
+    def __init__(self, root_path: str, patch_size: int, min_overlapping: int = 0):
         super().__init__(root_path, patch_size, min_overlapping)
         self.name = 'PaviaU'
+        self.wv = np.linspace(0.43, 0.86, 103)
 
     @property
     def labels(self):
         labels_ = {
-            0: "Undefined",
             1: "Asphalt",
             2: "Meadows",
             3: "Gravel",
@@ -119,4 +121,94 @@ class PaviaU(HyperspectralDataSet):
     def load_data(self):
         img = io.loadmat(os.path.join(self.root_path, 'PaviaU.mat'))["paviaU"]
         gt = io.loadmat(os.path.join(self.root_path, 'PaviaU_gt.mat'))["paviaU_gt"]
+        return img, gt
+
+
+class Houston(HyperspectralDataSet):
+    def __init__(self, root_path: str, patch_size: int, min_overlapping: int = 0):
+        self.name = 'Houston'
+        self.bbl = np.ones(48)
+        self.bands = np.arange(1, 49)
+        self.wv = np.array([374.399994,  388.700012,  403.100006,  417.399994,  431.700012,  446.100006,
+  460.399994,  474.700012,  489.000000,  503.399994,  517.700012,  532.000000,
+  546.299988,  560.599976,  574.900024,  589.200012,  603.599976,  617.900024,
+  632.200012,  646.500000,  660.799988,  675.099976,  689.400024,  703.700012,
+  718.000000,  732.299988,  746.599976,  760.900024,  775.200012,  789.500000,
+  803.799988,  818.099976,  832.400024,  846.700012,  861.099976,  875.400024,
+  889.700012,  904.000000,  918.299988,  932.599976,  946.900024,  961.200012,
+  975.500000,  989.799988, 1004.200012, 1018.500000, 1032.800049, 1047.099976])
+        self.wv = self.wv /1000
+        super().__init__(root_path, patch_size, min_overlapping)
+
+    @property
+    def labels(self):
+        labels_ = {
+            0: "Unclassified",
+            1: "Healthy grass",
+            2: "Stressed grass",
+            3: "Artificial turf",
+            4: "Evergreen trees",
+            5: "Deciduous trees",
+            6: "Bare earth",
+            7: "Water",
+            8: "Residential buildings",
+            9: "Non-residential buildings",
+            10: "Roads",
+            11: "Sidewalks",
+            12: "Crosswalks",
+            13: "Major thoroughfares",
+            14: "Highways",
+            15: "Railways",
+            16: "Paved parking lots",
+            17: "Unpaved parking lots",
+            18: "Cars",
+            19: "Trains",
+            20: "Stadium seats"
+        }
+
+        return labels_
+
+    def load_data(self):
+        img_path = os.path.join(self.root_path, '20170218_UH_CASI_S4_NAD83.tiff')
+        gt_path = os.path.join(self.root_path, '2018_IEEE_GRSS_DFC_GT_TR.tif')
+
+        with rasterio.open(img_path) as src:
+            #get data image transform crs shape metadata
+            dst_transform = src.transform
+            dst_crs = src.crs
+            dst_shape = src.height, src.width
+
+            img = src.read()
+            # tmp
+            img = img[:48, :, :]
+            img = img.transpose(1, 2, 0)
+
+        with rasterio.open(gt_path) as src:
+            #update metadata of label image with image metadata
+            kwargs = src.profile.copy()
+            kwargs.update({
+                'crs': dst_crs,
+                'transform': dst_transform,
+                'width': dst_shape[1],
+                'height': dst_shape[0]
+            })
+            #get label header tags
+            dst_tags = src.tags(ns=src.driver)
+
+            with rasterio.open(gt_path, 'w', **kwargs) as dst:
+                #reproject label image and write it
+                reproject(
+                    source=rasterio.band(src, 1),
+                    destination=rasterio.band(dst, 1),
+                    src_transform=src.transform,
+                    src_crs=src.crs,
+                    dst_transform=dst_transform,
+                    dst_crs=dst_crs,
+                    resampling=Resampling.nearest)
+
+        with rasterio.open(gt_path) as src:
+            gt = src.read()
+            gt = gt.reshape(gt.shape[1], gt.shape[2])
+
+        img = (img - img.min()) / (img.max() - img.min())
         return img, gt

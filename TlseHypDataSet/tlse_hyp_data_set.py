@@ -14,6 +14,7 @@ from TlseHypDataSet.utils.geometry import is_polygon_in_rectangle
 from TlseHypDataSet.utils.utils import make_dirs
 import pkgutil
 import csv
+import seaborn as sns
 
 
 __all__ = [
@@ -29,7 +30,8 @@ class TlseHypDataSet(Dataset):
                  pred_mode: str,
                  patch_size: int,
                  padding: int = 0,
-                 low_level_only: bool = False):
+                 low_level_only: bool = False,
+                 subset: float = 1):
 
         self.name = 'Toulouse'
         self.root_path = root_path
@@ -37,6 +39,7 @@ class TlseHypDataSet(Dataset):
         self.patch_size = patch_size
         self.padding = padding
         self.low_level_only = low_level_only
+        self.subset = subset
         self.transform = None
 
         self.images_path = [
@@ -158,21 +161,25 @@ class TlseHypDataSet(Dataset):
             21: 'Stressed grass',
             22: 'Tree',
             23: 'Bare soil',
-            24: 'Bare soil with vegetation',
-            25: 'Cement with gravels',
-            26: 'Gravels',
-            27: 'Rocks',
-            28: 'Green porous concrete',
-            29: 'Red porous concrete',
-            30: 'Seaweed',
-            31: 'Water - swimming pool',
-            32: 'Water',
-            33: 'Sorgho',
-            34: 'Wheat',
-            35: 'Field bean',
-            36: 'Clear plastic cover'
+            24: 'Cement with gravels',
+            25: 'Gravels',
+            26: 'Rocks',
+            27: 'Green porous concrete',
+            28: 'Red porous concrete',
+            29: 'Seaweed',
+            30: 'Water - swimming pool',
+            31: 'Water',
+            32: 'Sorgho',
+            33: 'Wheat',
+            34: 'Field bean',
+            35: 'Clear plastic cover'
         }
         return labels_
+
+    @property
+    def colors(self):
+        colors_ = sns.color_palette("hls", self.n_classes)
+        return colors_
 
     @property
     def areas(self):
@@ -234,8 +241,8 @@ class TlseHypDataSet(Dataset):
                 paths[attribute].append(path)
         return paths
 
-    def split_already_computed(self, p_labeled, p_test):
-        file = 'ground_truth_split_p_labeled_{}_p_test_{}.pkl'.format(p_labeled, p_test)
+    def split_already_computed(self, p_labeled, p_val, p_test):
+        file = 'ground_truth_split_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(p_labeled, p_val, p_test)
         already_computed = file in os.listdir(self.root_path)
         if already_computed:
             print('Data sets split is already computed')
@@ -243,14 +250,16 @@ class TlseHypDataSet(Dataset):
             print('Computing data sets split...')
         return already_computed
 
-    def load_splits(self, p_labeled, p_test):
-        file = os.path.join(self.root_path, 'ground_truth_split_p_labeled_{}_p_test_{}.pkl'.format(p_labeled, p_test))
+    def load_splits(self, p_labeled, p_val, p_test):
+        file = os.path.join(self.root_path, 'ground_truth_split_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(
+            p_labeled, p_val, p_test))
         with open(os.path.join(self.root_path, file), 'rb') as f:
             data = pkl.load(f)
         return data
 
-    def save_splits(self, solutions, p_labeled, p_test):
-        file = os.path.join(self.root_path, 'ground_truth_split_p_labeled_{}_p_test_{}.pkl'.format(p_labeled, p_test))
+    def save_splits(self, solutions, p_labeled, p_val, p_test):
+        file = os.path.join(self.root_path, 'ground_truth_split_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(
+            p_labeled, p_val, p_test))
         with open(os.path.join(self.root_path, file), 'wb') as f:
             pkl.dump(solutions, f)
 
@@ -328,22 +337,27 @@ class TlseHypDataSet(Dataset):
         self.samples[:, 4] = self.patch_size
         self.samples[:, 5] = self.patch_size
 
+        if self.subset < 1:
+            n_samples = int(self.subset * self.samples.shape[0])
+            subset = np.random.choice(np.arange(self.samples.shape[0]), size=n_samples, replace=False)
+            self.samples = self.samples[subset]
+
     def __len__(self):
-        if self.pred_mode == 'patch':
-            return len(self.patch_coordinates)
-        elif self.pred_mode == 'pixel':
-            return len(self.pixel_coordinates)
+        return len(self.samples)
 
     def __getitem__(self, i):
         i = int(i)
         image_id = self.samples[i, 0]
+        if self.pred_mode == 'patch':
+            image_id = image_id - 1
+
         coordinates = self.samples[i, 2:]
         col_offset, row_offset, col_size, row_size = [int(x) for x in coordinates]
 
-        sample = self.image_rasters[image_id-1].ReadAsArray(col_offset, row_offset, col_size, row_size,
+        sample = self.image_rasters[image_id].ReadAsArray(col_offset, row_offset, col_size, row_size,
                                                           band_list=self.bands)
-        gt = [self.gt_rasters[att][image_id-1].ReadAsArray(col_offset, row_offset, col_size, row_size)
-              for att in self.gt_rasters]
+        gt = [self.gt_rasters[att][image_id].ReadAsArray(col_offset, row_offset, col_size, row_size)
+              for att in ['Material', 'Class_2', 'Class_1']]
         gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
         gt = np.concatenate(gt, axis=-1)
 

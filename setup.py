@@ -14,7 +14,7 @@ setup(
                       'torch==1.7.1',
                       'gdal==3.3.2',
                       'rasterio==1.2.10',
-                      'ortools==9.6.2534',
+                      'ortools',
                       'geopandas==0.12.2',
                       'torchvision==0.8.2',
                       'matplotlib==3.3.2'
