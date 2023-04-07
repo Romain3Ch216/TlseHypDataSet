@@ -76,3 +76,16 @@ class SpectralIndex:
         raise NotImplementedError
 
 
+def full_spectra(spectra, bbl):
+    """
+    Args:
+    - spectra: npy array, HS cube
+    - bbl: npy boolean array, masked bands
+    Output:
+    HS cube with NaN at masked band locations
+    """
+    bbl = np.array(bbl).astype(bool)
+    res = np.zeros((spectra.shape[0],len(bbl)))
+    res[:, bbl] = spectra
+    res[:, bbl == False] = np.nan
+    return res

@@ -112,7 +112,6 @@ class TlseHypDataSet(Dataset):
         self.E_dir = np.array(self.E_dir)
         self.E_dif = np.array(self.E_dif)
         self.wv = np.array(self.wv)
-        self.wv = self.wv[self.bbl]
         self.n_bands = self.bbl.sum()
 
     @property
@@ -360,6 +359,9 @@ class TlseHypDataSet(Dataset):
               for att in ['Material', 'Class_2', 'Class_1']]
         gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
         gt = np.concatenate(gt, axis=-1)
+
+        if self.low_level_only:
+            gt = gt[:, :, 0]
 
         sample = np.transpose(sample, (1, 2, 0))
         sample = sample / 10**4
