@@ -1,0 +1,9 @@
+numpy
+torch
+gdal
+rasterio
+protobuf
+ortools
+geopandas
+torchvision
+matplotlib

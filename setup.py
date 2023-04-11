@@ -10,14 +10,14 @@ setup(
     packages=['TlseHypDataSet', 'TlseHypDataSet/utils'],
     package_dir={'TlseHypDataSet': 'TlseHypDataSet'},
     include_package_data=True,
-    install_requires=['numpy==1.19.5',
-                      'torch==2.0',
-                      'gdal==3.3.2',
-                      'rasterio==1.2.10',
-                      'protobuf>=3.6',
+    install_requires=['numpy',
+                      'torch',
+                      'gdal',
+                      'rasterio',
+                      'protobuf',
                       'ortools',
-                      'geopandas==0.12.2',
+                      'geopandas',
                       'torchvision',
-                      'matplotlib==3.3.2'
+                      'matplotlib'
                       ]
 )
