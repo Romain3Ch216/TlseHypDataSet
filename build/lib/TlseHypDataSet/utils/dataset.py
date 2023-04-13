@@ -1,5 +1,3 @@
-import pdb
-
 import numpy as np
 from ortools.sat.python import cp_model
 from torch.utils.data import Subset
@@ -32,7 +30,7 @@ def spatial_disjoint_split(dataset, p_labeled, p_val, p_test):
     return labeled_set, unlabeled_set, validation_set, test_set, proportions
 
 
-def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float) -> np.ndarray:
+def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_solutions: int = 1000) -> np.ndarray:
     """
     Solves a SAT problem to optimally split the ground truth in a labeled, unlabeled and test sets.
 
@@ -61,28 +59,10 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float) -> 
         non_zeros_groups = np.sum(areas > 0, axis=0)
         total_l_area, total_v_area, total_t_area = [], [], []
         for class_id in range(areas.shape[1]):
-            if non_zeros_groups[class_id] <= 5:
-                class_areas = areas[:, class_id]
-                class_areas = class_areas[class_areas > 0]
-                class_areas = np.sort(class_areas)
-                if p_val > 0:
-                    total_v_area.append(class_areas[1] / p_val)
-                else:
-                    total_v_area.append(0)
-                if p_labeled > 0:
-                    total_l_area.append(class_areas[2] / p_labeled)
-                else:
-                    total_l_area.append(0)
-                if p_test > 0:
-                    total_t_area.append(class_areas[0] / p_test)
-                else:
-                    total_t_area.append(0)
-            else:
-                total_v_area.append(np.sum(areas[:, class_id]))
-                total_l_area.append(np.sum(areas[:, class_id]))
-                total_t_area.append(np.sum(areas[:, class_id]))
+            total_v_area.append(np.sum(areas[:, class_id]))
+            total_l_area.append(np.sum(areas[:, class_id]))
+            total_t_area.append(np.sum(areas[:, class_id]))
 
-        import pdb; pdb.set_trace()
         # Initialize SAT model
         model = cp_model.CpModel()
         # sets is a dict which keys (i, j) are linked to values equal to 1 if group i is in set j, 0 otherwise
@@ -133,7 +113,7 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float) -> 
         # Objective function
         model.Minimize(labeled_area + val_area + test_area)
         solver = cp_model.CpSolver()
-        solution_printer = VarArraySolutionPrinterWithLimit(sets, 50)
+        solution_printer = VarArraySolutionPrinterWithLimit(sets, n_solutions)
         solver.parameters.enumerate_all_solutions = True
         status = solver.Solve(model, solution_printer)
         # print('Status = %s' % solver.StatusName(status))

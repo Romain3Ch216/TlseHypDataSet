@@ -1,5 +1,5 @@
 import pdb
-
+from typing import List
 import torch
 from torch.utils.data import Dataset
 import os
@@ -31,6 +31,7 @@ class TlseHypDataSet(Dataset):
                  patch_size: int,
                  padding: int = 0,
                  low_level_only: bool = False,
+                 images: List = None,
                  subset: float = 1):
 
         self.name = 'Toulouse'
@@ -39,6 +40,7 @@ class TlseHypDataSet(Dataset):
         self.patch_size = patch_size
         self.padding = padding
         self.low_level_only = low_level_only
+        self.images = images
         self.subset = subset
         self.transform = None
 
@@ -52,6 +54,9 @@ class TlseHypDataSet(Dataset):
             'TLS_1b_2021-06-15_10-41-20_reflectance_rect.bsq',
             'TLS_1e_2021-06-15_10-41-20_reflectance_rect.bsq'
         ]
+
+        if self.images is not None:
+            self.images_path = [self.images_path[img_id] for img_id in self.images]
 
         self.gt_path = 'ground_truth.shp'
 
