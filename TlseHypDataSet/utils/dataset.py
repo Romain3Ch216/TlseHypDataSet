@@ -1,5 +1,3 @@
-import pdb
-
 import numpy as np
 from ortools.sat.python import cp_model
 from torch.utils.data import Subset
