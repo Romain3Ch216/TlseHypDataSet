@@ -59,26 +59,9 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
         non_zeros_groups = np.sum(areas > 0, axis=0)
         total_l_area, total_v_area, total_t_area = [], [], []
         for class_id in range(areas.shape[1]):
-            if non_zeros_groups[class_id] <= 5:
-                class_areas = areas[:, class_id]
-                class_areas = class_areas[class_areas > 0]
-                class_areas = np.sort(class_areas)
-                if p_val > 0:
-                    total_v_area.append(class_areas[1] / p_val)
-                else:
-                    total_v_area.append(0)
-                if p_labeled > 0:
-                    total_l_area.append(class_areas[2] / p_labeled)
-                else:
-                    total_l_area.append(0)
-                if p_test > 0:
-                    total_t_area.append(class_areas[0] / p_test)
-                else:
-                    total_t_area.append(0)
-            else:
-                total_v_area.append(np.sum(areas[:, class_id]))
-                total_l_area.append(np.sum(areas[:, class_id]))
-                total_t_area.append(np.sum(areas[:, class_id]))
+            total_v_area.append(np.sum(areas[:, class_id]))
+            total_l_area.append(np.sum(areas[:, class_id]))
+            total_t_area.append(np.sum(areas[:, class_id]))
 
         # Initialize SAT model
         model = cp_model.CpModel()
