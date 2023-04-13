@@ -30,7 +30,7 @@ def spatial_disjoint_split(dataset, p_labeled, p_val, p_test):
     return labeled_set, unlabeled_set, validation_set, test_set, proportions
 
 
-def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float) -> np.ndarray:
+def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_solutions: int = 1000) -> np.ndarray:
     """
     Solves a SAT problem to optimally split the ground truth in a labeled, unlabeled and test sets.
 
@@ -130,7 +130,7 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float) -> 
         # Objective function
         model.Minimize(labeled_area + val_area + test_area)
         solver = cp_model.CpSolver()
-        solution_printer = VarArraySolutionPrinterWithLimit(sets, 50)
+        solution_printer = VarArraySolutionPrinterWithLimit(sets, n_solutions)
         solver.parameters.enumerate_all_solutions = True
         status = solver.Solve(model, solution_printer)
         # print('Status = %s' % solver.StatusName(status))
