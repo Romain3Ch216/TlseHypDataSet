@@ -45,14 +45,14 @@ class TlseHypDataSet(Dataset):
         self.transform = None
 
         self.images_path = [
-            'TLS_3d_2021-06-15_11-10-12_reflectance_rect.bsq',
-            'TLS_1c_2021-06-15_10-41-20_reflectance_rect.bsq',
-            'TLS_3a_2021-06-15_11-10-12_reflectance_rect.bsq',
-            'TLS_5c_2021-06-15_11-40-13_reflectance_rect.bsq',
-            'TLS_1d_2021-06-15_10-41-20_reflectance_rect.bsq',
-            'TLS_9c_2021-06-15_12-56-29_reflectance_rect.bsq',
-            'TLS_1b_2021-06-15_10-41-20_reflectance_rect.bsq',
-            'TLS_1e_2021-06-15_10-41-20_reflectance_rect.bsq'
+            'TLS_3d_2021-06-15_11-10-12_reflectance_rect.tif',
+            'TLS_1c_2021-06-15_10-41-20_reflectance_rect.tif',
+            'TLS_3a_2021-06-15_11-10-12_reflectance_rect.tif',
+            'TLS_5c_2021-06-15_11-40-13_reflectance_rect.tif',
+            'TLS_1d_2021-06-15_10-41-20_reflectance_rect.tif',
+            'TLS_9c_2021-06-15_12-56-29_reflectance_rect.tif',
+            'TLS_1b_2021-06-15_10-41-20_reflectance_rect.tif',
+            'TLS_1e_2021-06-15_10-41-20_reflectance_rect.tif'
         ]
 
         if self.images is not None:
