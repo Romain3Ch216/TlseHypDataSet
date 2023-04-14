@@ -76,6 +76,8 @@ class TlseHypDataSet(Dataset):
 
         self.ground_truth = gpd.read_file(os.path.join(self.root_path, 'GT', self.gt_path))
 
+
+
         self.wv = None
         self.bbl = None
         self.E_dir = None
@@ -83,16 +85,12 @@ class TlseHypDataSet(Dataset):
         self.n_bands = None
         self.samples = None
 
-        print('Read metadata...')
         self.read_metadata()
 
-        print('Open images...')
         self.image_rasters = [gdal.Open(os.path.join(self.root_path, 'images', image_path + '.tif'), gdal.GA_ReadOnly)
                               for image_path in self.images_path]
-        print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()
-        print('Open ground truth rasters...')
-        self.gt_rasters = dict((att, [gdal.Open(gt_path[:-3]+'tif', gdal.GA_ReadOnly) for gt_path in self.gts_path[att]])
+        self.gt_rasters = dict((att, [gdal.Open(gt_path, gdal.GA_ReadOnly) for gt_path in self.gts_path[att]])
                                for att in self.gts_path)
 
         if pred_mode == 'patch':
@@ -234,10 +232,6 @@ class TlseHypDataSet(Dataset):
             rasterio_dtype = rasterio.uint16 if dtype == 'uint16' else rasterio.uint8
             for id, img_path in enumerate(self.images_path):
                 path = os.path.join(self.root_path, 'rasters', 'gt_{}_{}.bsq'.format(attribute, id))
-                if 'gt_{}_{}.bsq'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
-                    paths[attribute].append(path)
-                    continue
-                pdb.set_trace()
                 img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
                 shape = img.shape
                 data = rasterize(shapes(gt.groupby(by='Image').get_group(id + 1), attribute), shape[:2], dtype=dtype,
