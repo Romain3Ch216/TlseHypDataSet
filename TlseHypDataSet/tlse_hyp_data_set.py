@@ -45,14 +45,14 @@ class TlseHypDataSet(Dataset):
         self.transform = None
 
         self.images_path = [
-            'TLS_3d_2021-06-15_11-10-12_reflectance_rect.tif',
-            'TLS_1c_2021-06-15_10-41-20_reflectance_rect.tif',
-            'TLS_3a_2021-06-15_11-10-12_reflectance_rect.tif',
-            'TLS_5c_2021-06-15_11-40-13_reflectance_rect.tif',
-            'TLS_1d_2021-06-15_10-41-20_reflectance_rect.tif',
-            'TLS_9c_2021-06-15_12-56-29_reflectance_rect.tif',
-            'TLS_1b_2021-06-15_10-41-20_reflectance_rect.tif',
-            'TLS_1e_2021-06-15_10-41-20_reflectance_rect.tif'
+            'TLS_3d_2021-06-15_11-10-12_reflectance_rect',
+            'TLS_1c_2021-06-15_10-41-20_reflectance_rect',
+            'TLS_3a_2021-06-15_11-10-12_reflectance_rect',
+            'TLS_5c_2021-06-15_11-40-13_reflectance_rect',
+            'TLS_1d_2021-06-15_10-41-20_reflectance_rect',
+            'TLS_9c_2021-06-15_12-56-29_reflectance_rect',
+            'TLS_1b_2021-06-15_10-41-20_reflectance_rect',
+            'TLS_1e_2021-06-15_10-41-20_reflectance_rect'
         ]
 
         if self.images is not None:
@@ -65,7 +65,8 @@ class TlseHypDataSet(Dataset):
             "Root directory should include an 'images' and a 'GT' folder."
 
         for image in self.images_path:
-            assert image in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
+            assert image + '.bsq' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
+            assert image + '.tif' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
             header = image[:-3] + 'hdr'
             assert header in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(header)
 
@@ -84,7 +85,7 @@ class TlseHypDataSet(Dataset):
 
         self.read_metadata()
 
-        self.image_rasters = [gdal.Open(os.path.join(self.root_path, 'images', image_path), gdal.GA_ReadOnly)
+        self.image_rasters = [gdal.Open(os.path.join(self.root_path, 'images', image_path + '.tif'), gdal.GA_ReadOnly)
                               for image_path in self.images_path]
         self.gts_path = self.rasterize_gt_shapefile()
         self.gt_rasters = dict((att, [gdal.Open(gt_path, gdal.GA_ReadOnly) for gt_path in self.gts_path[att]])
@@ -229,7 +230,7 @@ class TlseHypDataSet(Dataset):
             rasterio_dtype = rasterio.uint16 if dtype == 'uint16' else rasterio.uint8
             for id, img_path in enumerate(self.images_path):
                 path = os.path.join(self.root_path, 'rasters', 'gt_{}_{}.bsq'.format(attribute, id))
-                img = rasterio.open(os.path.join(self.root_path, 'images', img_path))
+                img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
                 shape = img.shape
                 data = rasterize(shapes(gt.groupby(by='Image').get_group(id + 1), attribute), shape[:2], dtype=dtype,
                                  transform=img.transform)
