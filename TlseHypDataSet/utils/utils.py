@@ -9,3 +9,13 @@ def make_dirs(folders):
             if exc.errno != os.errno.EEXIST:
                 raise
             pass
+
+
+def data_in_folder(files, folder):
+    out = True
+    for file in files:
+        if file in os.listdir(folder):
+            continue
+        else:
+            return False
+    return out

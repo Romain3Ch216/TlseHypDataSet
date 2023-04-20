@@ -11,10 +11,12 @@ from osgeo import gdal
 import rasterio
 from rasterio.features import rasterize
 from TlseHypDataSet.utils.geometry import is_polygon_in_rectangle
-from TlseHypDataSet.utils.utils import make_dirs
+from TlseHypDataSet.utils.utils import make_dirs, data_in_folder
 import pkgutil
 import csv
 import seaborn as sns
+import h5py
+import subprocess
 
 
 __all__ = [
@@ -26,13 +28,15 @@ class TlseHypDataSet(Dataset):
     """
 
     """
+
     def __init__(self, root_path: str,
                  pred_mode: str,
                  patch_size: int,
                  padding: int = 0,
                  low_level_only: bool = False,
                  images: List = None,
-                 subset: float = 1):
+                 subset: float = 1,
+                 h5py: bool = False):
 
         self.name = 'Toulouse'
         self.root_path = root_path
@@ -42,7 +46,11 @@ class TlseHypDataSet(Dataset):
         self.low_level_only = low_level_only
         self.images = images
         self.subset = subset
+        self.h5py = h5py
         self.transform = None
+
+        make_dirs(os.path.join(self.root_path, 'inputs'))
+        make_dirs(os.path.join(self.root_path, 'outputs'))
 
         self.images_path = [
             'TLS_3d_2021-06-15_11-10-12_reflectance_rect',
@@ -64,11 +72,11 @@ class TlseHypDataSet(Dataset):
         assert ('images' in dirs_in_root) and ('GT' in dirs_in_root), \
             "Root directory should include an 'images' and a 'GT' folder."
 
-        for image in self.images_path:
-            # assert image + '.bsq' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
-            assert image + '.tif' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
-            header = image + '.hdr'
-            # assert header in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(header)
+        if data_in_folder([image + '.tif' for image in self.images_path], os.path.join(root_path, 'images')) is False:
+            for image in self.images_path:
+                assert image + '.bsq' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
+                assert image + '.hdr' in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(image)
+            self.tile_rasters()
 
         for ext in ['cpg', 'dbf', 'shp', 'prj', 'shx']:
             gt_file = self.gt_path[:-3] + ext
@@ -83,6 +91,10 @@ class TlseHypDataSet(Dataset):
         self.n_bands = None
         self.samples = None
 
+        if self.h5py:
+            print('Saving data set in h5py files...')
+            self.save_data_set()
+
         print('Read metadata...')
         self.read_metadata()
 
@@ -92,8 +104,9 @@ class TlseHypDataSet(Dataset):
         print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()
         print('Open ground truth rasters...')
-        self.gt_rasters = dict((att, [gdal.Open(gt_path[:-3]+'tif', gdal.GA_ReadOnly) for gt_path in self.gts_path[att]])
-                               for att in self.gts_path)
+        self.gt_rasters = dict(
+            (att, [gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly) for gt_path in self.gts_path[att]])
+            for att in self.gts_path)
 
         if pred_mode == 'patch':
             self.compute_patches()
@@ -216,7 +229,7 @@ class TlseHypDataSet(Dataset):
         """
         Rasterize the ground truth shapefile.
         """
-        gt = self.ground_truth # gpd.read_file(os.path.join(dataset.root_path, 'GT', dataset.gt_path))
+        gt = self.ground_truth  # gpd.read_file(os.path.join(dataset.root_path, 'GT', dataset.gt_path))
         make_dirs([os.path.join(self.root_path, 'rasters')])
         paths = {}
 
@@ -233,25 +246,32 @@ class TlseHypDataSet(Dataset):
             dtype = 'uint16' if attribute == 'Group' else 'uint8'
             rasterio_dtype = rasterio.uint16 if dtype == 'uint16' else rasterio.uint8
             for id, img_path in enumerate(self.images_path):
-                path = os.path.join(self.root_path, 'rasters', 'gt_{}_{}.bsq'.format(attribute, id))
-                if 'gt_{}_{}.bsq'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
-                    paths[attribute].append(path)
+                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'gt_{}_{}.tif'.format(attribute, id)))
+                if 'gt_{}_{}.tif'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
                     continue
-                pdb.set_trace()
-                img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
-                shape = img.shape
-                data = rasterize(shapes(gt.groupby(by='Image').get_group(id + 1), attribute), shape[:2], dtype=dtype,
-                                 transform=img.transform)
-                data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
-                with rasterio.Env():
-                    profile = img.profile
-                    profile.update(
-                        dtype=rasterio_dtype,
-                        count=1,
-                        compress='lzw')
-                    with rasterio.open(path, 'w', **profile) as dst:
-                        dst.write(data)
-                paths[attribute].append(path)
+                else:
+                    path = os.path.join(self.root_path, 'rasters', 'gt_{}_{}.bsq'.format(attribute, id))
+                    if 'gt_{}_{}.bsq'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                        pass
+                    else:
+                        img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
+                        shape = img.shape
+                        data = rasterize(shapes(gt.groupby(by='Image').get_group(id + 1), attribute),
+                                         shape[:2],
+                                         dtype=dtype,
+                                         transform=img.transform)
+                        data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
+                        with rasterio.Env():
+                            profile = img.profile
+                            profile.update(
+                                dtype=rasterio_dtype,
+                                count=1,
+                                compress='lzw')
+                            with rasterio.open(path, 'w', **profile) as dst:
+                                dst.write(data)
+
+                    self.tile_raster(path)
+
         return paths
 
     def split_already_computed(self, p_labeled, p_val, p_test):
@@ -280,7 +300,7 @@ class TlseHypDataSet(Dataset):
         polygons_by_image = self.ground_truth.groupby(by='Image')
         groups, images, patch_coordinates = [], [], []
         for img_id in polygons_by_image.groups:
-            image_path = os.path.join(self.root_path, 'images', self.images_path[img_id-1])
+            image_path = os.path.join(self.root_path, 'images', self.images_path[img_id - 1])
             raster = gdal.Open(image_path, gdal.GA_ReadOnly)
             transform = raster.GetGeoTransform()
             xOrigin = transform[0]
@@ -316,7 +336,8 @@ class TlseHypDataSet(Dataset):
                     for i in range(n_x_patches):
                         for j in range(n_y_patches):
                             patches.append(
-                                tuple((left_col + i * self.patch_size, top_row + j * self.patch_size, self.patch_size, self.patch_size))
+                                tuple((left_col + i * self.patch_size, top_row + j * self.patch_size, self.patch_size,
+                                       self.patch_size))
                             )
 
                     groups.extend([polygon['Group']] * len(patches))
@@ -337,8 +358,8 @@ class TlseHypDataSet(Dataset):
             groups = groups[coords]
             img_list.extend([img_id] * len(groups))
             group_list.extend(groups)
-            col_offset = coords[1] - self.patch_size//2
-            row_offset = coords[0] - self.patch_size//2
+            col_offset = coords[1] - self.patch_size // 2
+            row_offset = coords[0] - self.patch_size // 2
             col_list.extend(col_offset)
             row_list.extend(row_offset)
 
@@ -354,6 +375,34 @@ class TlseHypDataSet(Dataset):
             n_samples = int(self.subset * self.samples.shape[0])
             subset = np.random.choice(np.arange(self.samples.shape[0]), size=n_samples, replace=False)
             self.samples = self.samples[subset]
+
+    def save_data_set(self):
+        data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}.hdf5'.format(self.pred_mode, self.patch_size))
+        data_file = h5py.File(data_file_path, "w")
+        labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}.hdf5'.format(self.pred_mode, self.patch_size))
+        labels_file = h5py.File(labels_file_path, "w")
+
+        if self.pred_mode == 'pixel':
+            batch_size = 1024
+        else:
+            batch_size = 16
+
+        sample, gt = self.__getitem__(0)
+        data = data_file.create_dataset("data", tuple((len(self),)) + sample.shape, dtype='float32')
+        labels = labels_file.create_dataset("data", tuple((len(self),)) + gt.shape, dtype='int8')
+
+        loader = torch.utils.data.DataLoader(self, shuffle=False, batch_size=batch_size)
+        i = 0
+        for sample, gt in loader:
+            b = sample.shape[0]
+            data[i: i + b] = sample
+            labels[i: i + b] = gt
+            i += b
+
+    def tile_raster(self, input_file):
+        out_file = input_file[:-3] + 'tif'
+        query = "gdal_translate -co TILED=YES -co BLOCKXSIZE=256 -co BLOCKYSIZE=256 " + input_file + " " + out_file
+        subprocess.call(query, shell=True)
 
     def __len__(self):
         return len(self.samples)
@@ -378,7 +427,7 @@ class TlseHypDataSet(Dataset):
             gt = gt[:, :, 0]
 
         sample = np.transpose(sample, (1, 2, 0))
-        sample = sample / 10**4
+        sample = sample / 10 ** 4
 
         sample = np.asarray(np.copy(sample), dtype="float32")
         gt = np.asarray(np.copy(gt), dtype="int64")
