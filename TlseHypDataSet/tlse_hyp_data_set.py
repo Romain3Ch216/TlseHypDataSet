@@ -65,10 +65,10 @@ class TlseHypDataSet(Dataset):
             "Root directory should include an 'images' and a 'GT' folder."
 
         for image in self.images_path:
-            assert image + '.bsq' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
+            # assert image + '.bsq' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
             assert image + '.tif' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
             header = image + '.hdr'
-            assert header in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(header)
+            # assert header in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(header)
 
         for ext in ['cpg', 'dbf', 'shp', 'prj', 'shx']:
             gt_file = self.gt_path[:-3] + ext
