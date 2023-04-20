@@ -16,6 +16,7 @@ import pkgutil
 import csv
 import seaborn as sns
 import h5py
+import subprocess
 
 
 __all__ = [
@@ -75,6 +76,7 @@ class TlseHypDataSet(Dataset):
             for image in self.images_path:
                 assert image + '.bsq' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
                 assert image + '.hdr' in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(image)
+            self.tile_rasters()
 
         for ext in ['cpg', 'dbf', 'shp', 'prj', 'shx']:
             gt_file = self.gt_path[:-3] + ext
@@ -244,25 +246,32 @@ class TlseHypDataSet(Dataset):
             dtype = 'uint16' if attribute == 'Group' else 'uint8'
             rasterio_dtype = rasterio.uint16 if dtype == 'uint16' else rasterio.uint8
             for id, img_path in enumerate(self.images_path):
-                path = os.path.join(self.root_path, 'rasters', 'gt_{}_{}.bsq'.format(attribute, id))
-                if 'gt_{}_{}.bsq'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
-                    paths[attribute].append(path)
+                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'gt_{}_{}.tif'.format(attribute, id)))
+                if 'gt_{}_{}.tif'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
                     continue
-                pdb.set_trace()
-                img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
-                shape = img.shape
-                data = rasterize(shapes(gt.groupby(by='Image').get_group(id + 1), attribute), shape[:2], dtype=dtype,
-                                 transform=img.transform)
-                data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
-                with rasterio.Env():
-                    profile = img.profile
-                    profile.update(
-                        dtype=rasterio_dtype,
-                        count=1,
-                        compress='lzw')
-                    with rasterio.open(path, 'w', **profile) as dst:
-                        dst.write(data)
-                paths[attribute].append(path)
+                else:
+                    path = os.path.join(self.root_path, 'rasters', 'gt_{}_{}.bsq'.format(attribute, id))
+                    if 'gt_{}_{}.bsq'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                        pass
+                    else:
+                        img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
+                        shape = img.shape
+                        data = rasterize(shapes(gt.groupby(by='Image').get_group(id + 1), attribute),
+                                         shape[:2],
+                                         dtype=dtype,
+                                         transform=img.transform)
+                        data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
+                        with rasterio.Env():
+                            profile = img.profile
+                            profile.update(
+                                dtype=rasterio_dtype,
+                                count=1,
+                                compress='lzw')
+                            with rasterio.open(path, 'w', **profile) as dst:
+                                dst.write(data)
+
+                    self.tile_raster(path)
+
         return paths
 
     def split_already_computed(self, p_labeled, p_val, p_test):
@@ -390,6 +399,10 @@ class TlseHypDataSet(Dataset):
             labels[i: i + b] = gt
             i += b
 
+    def tile_raster(self, input_file):
+        out_file = input_file[:-3] + 'tif'
+        query = "gdal_translate -co TILED=YES -co BLOCKXSIZE=256 -co BLOCKYSIZE=256 " + input_file + " " + out_file
+        subprocess.call(query, shell=True)
 
     def __len__(self):
         return len(self.samples)
