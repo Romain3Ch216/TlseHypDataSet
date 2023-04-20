@@ -436,23 +436,23 @@ class TlseHypDataSet(Dataset):
             gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
             gt = np.concatenate(gt, axis=-1)
 
-        if self.low_level_only:
-            gt = gt[:, :, 0]
+            if self.low_level_only:
+                gt = gt[:, :, 0]
 
-        sample = np.transpose(sample, (1, 2, 0))
-        sample = sample / 10 ** 4
+            sample = np.transpose(sample, (1, 2, 0))
+            sample = sample / 10 ** 4
 
-        sample = np.asarray(np.copy(sample), dtype="float32")
-        gt = np.asarray(np.copy(gt), dtype="int64")
+            sample = np.asarray(np.copy(sample), dtype="float32")
+            gt = np.asarray(np.copy(gt), dtype="int64")
 
-        sample = torch.from_numpy(sample)
-        gt = torch.from_numpy(gt)
+            sample = torch.from_numpy(sample)
+            gt = torch.from_numpy(gt)
 
-        if self.patch_size == 1:
-            sample = sample.squeeze(1)
-            gt = gt.squeeze(1)
+            if self.patch_size == 1:
+                sample = sample.squeeze(1)
+                gt = gt.squeeze(1)
 
-        if self.transform is not None:
+        if self.transform is not None and (self.saved_h5py and self.h5py):
             sample, gt = self.transform((sample, gt))
 
         return sample, gt
