@@ -11,12 +11,11 @@ from osgeo import gdal
 import rasterio
 from rasterio.features import rasterize
 from TlseHypDataSet.utils.geometry import is_polygon_in_rectangle
-from TlseHypDataSet.utils.utils import make_dirs, data_in_folder
+from TlseHypDataSet.utils.utils import make_dirs, data_in_folder, tile_raster
 import pkgutil
 import csv
 import seaborn as sns
 import h5py
-import subprocess
 
 
 __all__ = [
@@ -36,7 +35,7 @@ class TlseHypDataSet(Dataset):
                  low_level_only: bool = False,
                  images: List = None,
                  subset: float = 1,
-                 h5py: bool = False):
+                 in_h5py: bool = False):
 
         self.name = 'Toulouse'
         self.root_path = root_path
@@ -46,11 +45,12 @@ class TlseHypDataSet(Dataset):
         self.low_level_only = low_level_only
         self.images = images
         self.subset = subset
-        self.h5py = h5py
+        self.h5py = in_h5py
         self.transform = None
+        self.saved_h5py = False
 
-        make_dirs(os.path.join(self.root_path, 'inputs'))
-        make_dirs(os.path.join(self.root_path, 'outputs'))
+        make_dirs([os.path.join(self.root_path, 'inputs')])
+        make_dirs([os.path.join(self.root_path, 'outputs')])
 
         self.images_path = [
             'TLS_3d_2021-06-15_11-10-12_reflectance_rect',
@@ -76,7 +76,7 @@ class TlseHypDataSet(Dataset):
             for image in self.images_path:
                 assert image + '.bsq' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
                 assert image + '.hdr' in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(image)
-            self.tile_rasters()
+                tile_raster(os.path.join(self.root_path, 'images', image + '.bsq'))
 
         for ext in ['cpg', 'dbf', 'shp', 'prj', 'shx']:
             gt_file = self.gt_path[:-3] + ext
@@ -90,10 +90,6 @@ class TlseHypDataSet(Dataset):
         self.E_dif = None
         self.n_bands = None
         self.samples = None
-
-        if self.h5py:
-            print('Saving data set in h5py files...')
-            self.save_data_set()
 
         print('Read metadata...')
         self.read_metadata()
@@ -114,6 +110,11 @@ class TlseHypDataSet(Dataset):
             self.compute_pixels()
         else:
             raise ValueError("pred_mode is either patch or pixel.")
+
+        if self.h5py:
+            print('Saving data set in h5py files...')
+            h5py_data, h5py_labels = self.save_data_set()
+            self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r'), h5py.File(h5py_labels, 'r')
 
     def read_metadata(self):
         self.wv = []
@@ -270,8 +271,7 @@ class TlseHypDataSet(Dataset):
                             with rasterio.open(path, 'w', **profile) as dst:
                                 dst.write(data)
 
-                    self.tile_raster(path)
-
+                    tile_raster(path)
         return paths
 
     def split_already_computed(self, p_labeled, p_val, p_test):
@@ -378,68 +378,74 @@ class TlseHypDataSet(Dataset):
 
     def save_data_set(self):
         data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}.hdf5'.format(self.pred_mode, self.patch_size))
-        data_file = h5py.File(data_file_path, "w")
         labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}.hdf5'.format(self.pred_mode, self.patch_size))
-        labels_file = h5py.File(labels_file_path, "w")
-
-        if self.pred_mode == 'pixel':
-            batch_size = 1024
+        if 'data_{}_{}.hdf5'.format(self.pred_mode, self.patch_size) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
+                'labels_{}_{}.hdf5'.format(self.pred_mode, self.patch_size) in os.listdir(os.path.join(self.root_path, 'inputs')):
+            self.saved_h5py = True
+            print("Data already saved in .h5py files.")
         else:
-            batch_size = 16
 
-        sample, gt = self.__getitem__(0)
-        data = data_file.create_dataset("data", tuple((len(self),)) + sample.shape, dtype='float32')
-        labels = labels_file.create_dataset("data", tuple((len(self),)) + gt.shape, dtype='int8')
+            data_file = h5py.File(data_file_path, "w")
+            labels_file = h5py.File(labels_file_path, "w")
+            if self.pred_mode == 'pixel':
+                batch_size = 1024
+            else:
+                batch_size = 16
 
-        loader = torch.utils.data.DataLoader(self, shuffle=False, batch_size=batch_size)
-        i = 0
-        for sample, gt in loader:
-            b = sample.shape[0]
-            data[i: i + b] = sample
-            labels[i: i + b] = gt
-            i += b
+            sample, gt = self.__getitem__(0)
+            data = data_file.create_dataset("data", tuple((len(self),)) + sample.shape, dtype='float32')
+            labels = labels_file.create_dataset("data", tuple((len(self),)) + gt.shape, dtype='int8')
 
-    def tile_raster(self, input_file):
-        out_file = input_file[:-3] + 'tif'
-        query = "gdal_translate -co TILED=YES -co BLOCKXSIZE=256 -co BLOCKYSIZE=256 " + input_file + " " + out_file
-        subprocess.call(query, shell=True)
+            loader = torch.utils.data.DataLoader(self, shuffle=False, batch_size=batch_size)
+            i = 0
+            for sample, gt in loader:
+                b = sample.shape[0]
+                data[i: i + b] = sample
+                labels[i: i + b] = gt
+                i += b
+            self.saved_h5py = True
+
+        return data_file_path, labels_file_path
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, i):
-        i = int(i)
-        image_id = self.samples[i, 0]
-        if self.pred_mode == 'patch':
-            image_id = image_id - 1
+        if self.h5py and self.saved_h5py:
+            sample = self.h5py_data['data'][i]
+            gt = self.h5py_labels['data'][i]
+        else:
+            image_id = self.samples[i, 0]
+            if self.pred_mode == 'patch':
+                image_id = image_id - 1
 
-        coordinates = self.samples[i, 2:]
-        col_offset, row_offset, col_size, row_size = [int(x) for x in coordinates]
+            coordinates = self.samples[i, 2:]
+            col_offset, row_offset, col_size, row_size = [int(x) for x in coordinates]
 
-        sample = self.image_rasters[image_id].ReadAsArray(col_offset, row_offset, col_size, row_size,
-                                                          band_list=self.bands)
-        gt = [self.gt_rasters[att][image_id].ReadAsArray(col_offset, row_offset, col_size, row_size)
-              for att in ['Material', 'Class_2', 'Class_1']]
-        gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
-        gt = np.concatenate(gt, axis=-1)
+            sample = self.image_rasters[image_id].ReadAsArray(col_offset, row_offset, col_size, row_size,
+                                                              band_list=self.bands)
+            gt = [self.gt_rasters[att][image_id].ReadAsArray(col_offset, row_offset, col_size, row_size)
+                  for att in ['Material', 'Class_2', 'Class_1']]
+            gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
+            gt = np.concatenate(gt, axis=-1)
 
-        if self.low_level_only:
-            gt = gt[:, :, 0]
+            if self.low_level_only:
+                gt = gt[:, :, 0]
 
-        sample = np.transpose(sample, (1, 2, 0))
-        sample = sample / 10 ** 4
+            sample = np.transpose(sample, (1, 2, 0))
+            sample = sample / 10 ** 4
 
-        sample = np.asarray(np.copy(sample), dtype="float32")
-        gt = np.asarray(np.copy(gt), dtype="int64")
+            sample = np.asarray(np.copy(sample), dtype="float32")
+            gt = np.asarray(np.copy(gt), dtype="int64")
 
-        sample = torch.from_numpy(sample)
-        gt = torch.from_numpy(gt)
+            sample = torch.from_numpy(sample)
+            gt = torch.from_numpy(gt)
 
-        if self.patch_size == 1:
-            sample = sample.squeeze(1)
-            gt = gt.squeeze(1)
+            if self.patch_size == 1:
+                sample = sample.squeeze(1)
+                gt = gt.squeeze(1)
 
-        if self.transform is not None:
-            sample, gt = self.transform((sample, gt))
+            if self.transform is not None:
+                sample, gt = self.transform((sample, gt))
 
         return sample, gt
