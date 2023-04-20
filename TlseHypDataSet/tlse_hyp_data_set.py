@@ -35,7 +35,8 @@ class TlseHypDataSet(Dataset):
                  low_level_only: bool = False,
                  images: List = None,
                  subset: float = 1,
-                 in_h5py: bool = False):
+                 in_h5py: bool = False,
+                 data_on_gpu: bool = False):
 
         self.name = 'Toulouse'
         self.root_path = root_path
@@ -48,6 +49,7 @@ class TlseHypDataSet(Dataset):
         self.h5py = in_h5py
         self.transform = None
         self.saved_h5py = False
+        self.data_on_gpu = True
 
         make_dirs([os.path.join(self.root_path, 'inputs')])
         make_dirs([os.path.join(self.root_path, 'outputs')])
@@ -114,7 +116,11 @@ class TlseHypDataSet(Dataset):
         if self.h5py:
             print('Saving data set in h5py files...')
             h5py_data, h5py_labels = self.save_data_set()
-            self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r'), h5py.File(h5py_labels, 'r')
+            self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r')['data'], h5py.File(h5py_labels, 'r')['data']
+            if self.data_on_gpu:
+                print('Loading whole data on device...')
+                self.h5py_data = self.h5py_data[()]
+                self.h5py_labels = self.h5py_labels[()]
 
     def read_metadata(self):
         self.wv = []
@@ -413,8 +419,8 @@ class TlseHypDataSet(Dataset):
 
     def __getitem__(self, i):
         if self.h5py and self.saved_h5py:
-            sample = self.h5py_data['data'][i]
-            gt = self.h5py_labels['data'][i]
+            sample = self.h5py_data[i]
+            gt = self.h5py_labels[i]
         else:
             image_id = self.samples[i, 0]
             if self.pred_mode == 'patch':
@@ -430,23 +436,23 @@ class TlseHypDataSet(Dataset):
             gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
             gt = np.concatenate(gt, axis=-1)
 
-            if self.low_level_only:
-                gt = gt[:, :, 0]
+        if self.low_level_only:
+            gt = gt[:, :, 0]
 
-            sample = np.transpose(sample, (1, 2, 0))
-            sample = sample / 10 ** 4
+        sample = np.transpose(sample, (1, 2, 0))
+        sample = sample / 10 ** 4
 
-            sample = np.asarray(np.copy(sample), dtype="float32")
-            gt = np.asarray(np.copy(gt), dtype="int64")
+        sample = np.asarray(np.copy(sample), dtype="float32")
+        gt = np.asarray(np.copy(gt), dtype="int64")
 
-            sample = torch.from_numpy(sample)
-            gt = torch.from_numpy(gt)
+        sample = torch.from_numpy(sample)
+        gt = torch.from_numpy(gt)
 
-            if self.patch_size == 1:
-                sample = sample.squeeze(1)
-                gt = gt.squeeze(1)
+        if self.patch_size == 1:
+            sample = sample.squeeze(1)
+            gt = gt.squeeze(1)
 
-            if self.transform is not None:
-                sample, gt = self.transform((sample, gt))
+        if self.transform is not None:
+            sample, gt = self.transform((sample, gt))
 
         return sample, gt
