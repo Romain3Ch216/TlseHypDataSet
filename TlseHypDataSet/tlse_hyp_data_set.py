@@ -11,12 +11,11 @@ from osgeo import gdal
 import rasterio
 from rasterio.features import rasterize
 from TlseHypDataSet.utils.geometry import is_polygon_in_rectangle
-from TlseHypDataSet.utils.utils import make_dirs, data_in_folder
+from TlseHypDataSet.utils.utils import make_dirs, data_in_folder, tile_raster
 import pkgutil
 import csv
 import seaborn as sns
 import h5py
-import subprocess
 
 
 __all__ = [
@@ -49,8 +48,8 @@ class TlseHypDataSet(Dataset):
         self.h5py = h5py
         self.transform = None
 
-        make_dirs(os.path.join(self.root_path, 'inputs'))
-        make_dirs(os.path.join(self.root_path, 'outputs'))
+        make_dirs([os.path.join(self.root_path, 'inputs')])
+        make_dirs([os.path.join(self.root_path, 'outputs')])
 
         self.images_path = [
             'TLS_3d_2021-06-15_11-10-12_reflectance_rect',
@@ -76,7 +75,7 @@ class TlseHypDataSet(Dataset):
             for image in self.images_path:
                 assert image + '.bsq' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
                 assert image + '.hdr' in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(image)
-            self.tile_rasters()
+                tile_raster(os.path.join(self.root_path, 'images', image + '.bsq'))
 
         for ext in ['cpg', 'dbf', 'shp', 'prj', 'shx']:
             gt_file = self.gt_path[:-3] + ext
@@ -90,10 +89,6 @@ class TlseHypDataSet(Dataset):
         self.E_dif = None
         self.n_bands = None
         self.samples = None
-
-        if self.h5py:
-            print('Saving data set in h5py files...')
-            self.save_data_set()
 
         print('Read metadata...')
         self.read_metadata()
@@ -114,6 +109,10 @@ class TlseHypDataSet(Dataset):
             self.compute_pixels()
         else:
             raise ValueError("pred_mode is either patch or pixel.")
+
+        if self.h5py:
+            print('Saving data set in h5py files...')
+            self.save_data_set()
 
     def read_metadata(self):
         self.wv = []
@@ -270,8 +269,7 @@ class TlseHypDataSet(Dataset):
                             with rasterio.open(path, 'w', **profile) as dst:
                                 dst.write(data)
 
-                    self.tile_raster(path)
-
+                    tile_raster(path)
         return paths
 
     def split_already_computed(self, p_labeled, p_val, p_test):
@@ -387,6 +385,7 @@ class TlseHypDataSet(Dataset):
         else:
             batch_size = 16
 
+        pdb.set_trace()
         sample, gt = self.__getitem__(0)
         data = data_file.create_dataset("data", tuple((len(self),)) + sample.shape, dtype='float32')
         labels = labels_file.create_dataset("data", tuple((len(self),)) + gt.shape, dtype='int8')
@@ -398,11 +397,6 @@ class TlseHypDataSet(Dataset):
             data[i: i + b] = sample
             labels[i: i + b] = gt
             i += b
-
-    def tile_raster(self, input_file):
-        out_file = input_file[:-3] + 'tif'
-        query = "gdal_translate -co TILED=YES -co BLOCKXSIZE=256 -co BLOCKYSIZE=256 " + input_file + " " + out_file
-        subprocess.call(query, shell=True)
 
     def __len__(self):
         return len(self.samples)
