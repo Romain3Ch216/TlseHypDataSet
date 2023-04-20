@@ -377,10 +377,11 @@ class TlseHypDataSet(Dataset):
             self.samples = self.samples[subset]
 
     def save_data_set(self):
-        data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}.hdf5'.format(self.pred_mode, self.patch_size))
-        labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}.hdf5'.format(self.pred_mode, self.patch_size))
-        if 'data_{}_{}.hdf5'.format(self.pred_mode, self.patch_size) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
-                'labels_{}_{}.hdf5'.format(self.pred_mode, self.patch_size) in os.listdir(os.path.join(self.root_path, 'inputs')):
+        images = 'images_' + '_'.join([str(img_id) for img_id in self.images])
+        data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images))
+        labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images))
+        if 'data_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
+                'labels_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images) in os.listdir(os.path.join(self.root_path, 'inputs')):
             self.saved_h5py = True
             print("Data already saved in .h5py files.")
         else:
