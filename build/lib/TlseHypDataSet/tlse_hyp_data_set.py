@@ -452,7 +452,7 @@ class TlseHypDataSet(Dataset):
                 sample = sample.squeeze(1)
                 gt = gt.squeeze(1)
 
-        if self.transform is not None:
+        if self.transform is not None and (self.saved_h5py and self.h5py):
             sample, gt = self.transform((sample, gt))
 
         return sample, gt
