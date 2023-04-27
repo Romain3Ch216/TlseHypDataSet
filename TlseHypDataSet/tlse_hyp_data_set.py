@@ -35,7 +35,8 @@ class TlseHypDataSet(Dataset):
                  low_level_only: bool = False,
                  images: List = None,
                  subset: float = 1,
-                 in_h5py: bool = False):
+                 in_h5py: bool = False,
+                 data_on_gpu: bool = False):
 
         self.name = 'Toulouse'
         self.root_path = root_path
@@ -48,6 +49,7 @@ class TlseHypDataSet(Dataset):
         self.h5py = in_h5py
         self.transform = None
         self.saved_h5py = False
+        self.data_on_gpu = True
 
         make_dirs([os.path.join(self.root_path, 'inputs')])
         make_dirs([os.path.join(self.root_path, 'outputs')])
@@ -114,7 +116,11 @@ class TlseHypDataSet(Dataset):
         if self.h5py:
             print('Saving data set in h5py files...')
             h5py_data, h5py_labels = self.save_data_set()
-            self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r'), h5py.File(h5py_labels, 'r')
+            self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r')['data'], h5py.File(h5py_labels, 'r')['data']
+            if self.data_on_gpu:
+                print('Loading whole data on device...')
+                self.h5py_data = self.h5py_data[()]
+                self.h5py_labels = self.h5py_labels[()]
 
     def read_metadata(self):
         self.wv = []
@@ -377,10 +383,11 @@ class TlseHypDataSet(Dataset):
             self.samples = self.samples[subset]
 
     def save_data_set(self):
-        data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}.hdf5'.format(self.pred_mode, self.patch_size))
-        labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}.hdf5'.format(self.pred_mode, self.patch_size))
-        if 'data_{}_{}.hdf5'.format(self.pred_mode, self.patch_size) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
-                'labels_{}_{}.hdf5'.format(self.pred_mode, self.patch_size) in os.listdir(os.path.join(self.root_path, 'inputs')):
+        images = 'images_' + '_'.join([str(img_id) for img_id in self.images])
+        data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images))
+        labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images))
+        if 'data_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
+                'labels_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images) in os.listdir(os.path.join(self.root_path, 'inputs')):
             self.saved_h5py = True
             print("Data already saved in .h5py files.")
         else:
@@ -412,8 +419,8 @@ class TlseHypDataSet(Dataset):
 
     def __getitem__(self, i):
         if self.h5py and self.saved_h5py:
-            sample = self.h5py_data['data'][i]
-            gt = self.h5py_labels['data'][i]
+            sample = self.h5py_data[i]
+            gt = self.h5py_labels[i]
         else:
             image_id = self.samples[i, 0]
             if self.pred_mode == 'patch':
@@ -445,7 +452,7 @@ class TlseHypDataSet(Dataset):
                 sample = sample.squeeze(1)
                 gt = gt.squeeze(1)
 
-            if self.transform is not None:
-                sample, gt = self.transform((sample, gt))
+        if self.transform is not None and (self.saved_h5py and self.h5py):
+            sample, gt = self.transform((sample, gt))
 
         return sample, gt
