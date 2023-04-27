@@ -62,7 +62,7 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
             total_v_area.append(np.sum(areas[:, class_id]))
             total_l_area.append(np.sum(areas[:, class_id]))
             total_t_area.append(np.sum(areas[:, class_id]))
-
+        import pdb; pdb.set_trace()
         # Initialize SAT model
         model = cp_model.CpModel()
         # sets is a dict which keys (i, j) are linked to values equal to 1 if group i is in set j, 0 otherwise

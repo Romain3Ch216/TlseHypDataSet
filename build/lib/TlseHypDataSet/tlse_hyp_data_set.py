@@ -383,7 +383,7 @@ class TlseHypDataSet(Dataset):
             self.samples = self.samples[subset]
 
     def save_data_set(self):
-        images = 'images_' + '_'.join([str(img_id) for img_id in self.images])
+        images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
         data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images))
         labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images))
         if 'data_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
