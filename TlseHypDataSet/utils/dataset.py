@@ -201,7 +201,9 @@ def assert_feasible(total_l_area,
             total_l_area[class_id] * p_labeled,
             total_v_area[class_id] * p_val,
             total_t_area[class_id] * p_test]).astype(int)
+        prop = np.sort([p_labeled, p_val, p_test])
         total_areas = np.sort(total_areas)
+        set_order = np.argsort(total_areas)
         area = areas[:, class_id]
         area = np.sort(area)
         current_area = 0
@@ -218,7 +220,19 @@ def assert_feasible(total_l_area,
                 current_area = 0
         feasible = (i >= 2) and (current_area >= total_areas[i])
         if feasible is False:
+            n_groups = []
+            cum_area = np.cumsum(area)
+            i = int(prop[0] * len(area))
+            for k, set_id in enumerate(set_order):
+                n_groups.append(cum_area[i])
+                i += int(prop[k+1] * len(area))
+            import pdb
+            pdb.set_trace()
+            total_l_area[class_id] = n_groups[np.where(set_order == 0)[0]]
+            total_v_area[class_id] = n_groups[np.where(set_order == 1)[0]]
+            total_t_area[class_id] = n_groups[np.where(set_order == 2)[0]]
             print(f'Class {class_id+1}: unresolved constraints')
         feasibility = feasibility and feasible
-    return feasibility
+    print('Feasibility: ', feasibility)
+    return total_l_area, total_v_area, total_t_area
 
