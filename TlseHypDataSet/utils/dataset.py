@@ -66,15 +66,15 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
                 class_areas = class_areas[class_areas > 0]
                 class_areas = np.sort(class_areas)
                 if p_labeled > 0:
-                    total_l_area.append(class_areas[np.where(prop == p_labeled)[0][0]])
+                    total_l_area.append(class_areas[np.where(prop == p_labeled)[0][0]] / p_labeled)
                 else:
                     total_l_area.append(0)
                 if p_val > 0:
-                    total_v_area.append(class_areas[np.where(prop == p_val)[0][0]])
+                    total_v_area.append(class_areas[np.where(prop == p_val)[0][0]] / p_val)
                 else:
                     total_v_area.append(0)
                 if p_test > 0:
-                    total_t_area.append(class_areas[np.where(prop == p_test)[0][0]])
+                    total_t_area.append(class_areas[np.where(prop == p_test)[0][0]] / p_test)
                 else:
                     total_t_area.append(0)
             else:
@@ -82,6 +82,7 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
                 total_l_area.append(np.sum(areas[:, class_id]))
                 total_t_area.append(np.sum(areas[:, class_id]))
 
+        assert assert_feasible(total_l_area, total_v_area, total_t_area, p_labeled, p_val, p_test, areas)
         # Initialize SAT model
         model = cp_model.CpModel()
         # sets is a dict which keys (i, j) are linked to values equal to 1 if group i is in set j, 0 otherwise
@@ -183,3 +184,37 @@ class VarArraySolutionPrinterWithLimit(cp_model.CpSolverSolutionCallback):
 
     def solutions(self):
         return self.__solutions
+
+
+def assert_feasible(total_l_area,
+                    total_v_area,
+                    total_t_area,
+                    p_labeled,
+                    p_val,
+                    p_test,
+                    areas):
+    feasibility = True
+    n_classes = areas.shape[1]
+    for class_id in range(n_classes):
+        total_areas = np.array([
+            total_l_area[class_id] * p_labeled,
+            total_v_area[class_id] * p_val,
+            total_t_area[class_id] * p_test]).astype(int)
+        total_areas = np.sort(total_areas)
+        area = areas[:, class_id]
+        area = np.sort(area)
+        current_area = 0
+        i, j = 0, 0
+        while i < 3 and j < len(area):
+            if current_area < total_areas[i]:
+                current_area += area[j]
+                j+= 1
+            else:
+                i+= 1
+                current_area = 0
+        feasible = current_area >= total_areas[i]
+        if feasible is False:
+            print(f'Class {class_id+1}: unresolved constraints')
+        feasibility = feasibility * feasible
+    return feasibility
+
