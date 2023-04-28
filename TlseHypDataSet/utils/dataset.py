@@ -81,7 +81,7 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
                 total_v_area.append(np.sum(areas[:, class_id]))
                 total_l_area.append(np.sum(areas[:, class_id]))
                 total_t_area.append(np.sum(areas[:, class_id]))
-
+        import pdb; pdb.set_trace()
         assert assert_feasible(total_l_area, total_v_area, total_t_area, p_labeled, p_val, p_test, areas)
         # Initialize SAT model
         model = cp_model.CpModel()
