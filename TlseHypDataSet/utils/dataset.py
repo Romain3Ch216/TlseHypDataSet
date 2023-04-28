@@ -57,12 +57,34 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
     else:
         # Compute minimum areas for each class
         non_zeros_groups = np.sum(areas > 0, axis=0)
+        prop = np.array([p_labeled, p_val, p_test])
+        prop = np.sort(prop)
         total_l_area, total_v_area, total_t_area = [], [], []
         for class_id in range(areas.shape[1]):
-            total_v_area.append(np.sum(areas[:, class_id]))
-            total_l_area.append(np.sum(areas[:, class_id]))
-            total_t_area.append(np.sum(areas[:, class_id]))
-
+            if non_zeros_groups[class_id] <= 30:
+                class_areas = areas[:, class_id]
+                class_areas = class_areas[class_areas > 0]
+                class_areas = np.sort(class_areas)
+                if p_labeled > 0:
+                    total_l_area.append(class_areas[0] / p_labeled)
+                    # total_l_area.append(class_areas[np.where(prop == p_labeled)[0][0]] / p_labeled)
+                else:
+                    total_l_area.append(0)
+                if p_val > 0:
+                    total_v_area.append(class_areas[0] / p_val)
+                    # total_v_area.append(class_areas[np.where(prop == p_val)[0][0]] / p_val)
+                else:
+                    total_v_area.append(0)
+                if p_test > 0:
+                    total_t_area.append(class_areas[0] / p_test)
+                    # total_t_area.append(class_areas[np.where(prop == p_test)[0][0]] / p_test)
+                else:
+                    total_t_area.append(0)
+            else:
+                total_v_area.append(np.sum(areas[:, class_id]))
+                total_l_area.append(np.sum(areas[:, class_id]))
+                total_t_area.append(np.sum(areas[:, class_id]))
+        import pdb; pdb.set_trace()
         # Initialize SAT model
         model = cp_model.CpModel()
         # sets is a dict which keys (i, j) are linked to values equal to 1 if group i is in set j, 0 otherwise
@@ -122,7 +144,8 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
         solutions = solution_printer.solutions()
 
         dataset.save_splits(solutions, p_labeled, p_val, p_test)
-#
+    if solution_printer.solution_count() == 0:
+        import pdb; pdb.set_trace()
     random_fold = np.random.randint(3*len(solutions)//4, len(solutions), size=1)
     random_fold = random_fold[0]
     solution = solutions[random_fold]
