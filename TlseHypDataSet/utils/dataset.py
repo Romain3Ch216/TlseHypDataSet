@@ -204,17 +204,20 @@ def assert_feasible(total_l_area,
         area = areas[:, class_id]
         area = np.sort(area)
         current_area = 0
-        i, j = 0, 0
+        i = 0
+        j = 0
         while i < 3 and j < len(area):
             if current_area < total_areas[i]:
                 current_area += area[j]
                 j+= 1
+            elif i == 2:
+                j+=1
             else:
                 i+= 1
                 current_area = 0
-        feasible = current_area >= total_areas[i]
+        feasible = (i >= 2) and (current_area >= total_areas[i])
         if feasible is False:
             print(f'Class {class_id+1}: unresolved constraints')
-        feasibility = feasibility * feasible
+        feasibility = feasibility and feasible
     return feasibility
 
