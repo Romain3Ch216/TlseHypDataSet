@@ -48,8 +48,8 @@ class TlseHypDataSet(Dataset):
         self.subset = subset
         self.h5py = in_h5py
         self.transform = None
-        self.saved_h5py = False
-        self.data_on_gpu = True
+        self.saved_h5py = in_h5py
+        self.data_on_gpu = data_on_gpu
 
         make_dirs([os.path.join(self.root_path, 'inputs')])
         make_dirs([os.path.join(self.root_path, 'outputs')])

@@ -81,8 +81,7 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
                 total_v_area.append(np.sum(areas[:, class_id]))
                 total_l_area.append(np.sum(areas[:, class_id]))
                 total_t_area.append(np.sum(areas[:, class_id]))
-        import pdb; pdb.set_trace()
-        assert assert_feasible(total_l_area, total_v_area, total_t_area, p_labeled, p_val, p_test, areas)
+        total_l_area, total_v_area, total_t_area = assert_feasible(total_l_area, total_v_area, total_t_area, p_labeled, p_val, p_test, areas)
         # Initialize SAT model
         model = cp_model.CpModel()
         # sets is a dict which keys (i, j) are linked to values equal to 1 if group i is in set j, 0 otherwise
@@ -142,8 +141,7 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
         solutions = solution_printer.solutions()
 
         dataset.save_splits(solutions, p_labeled, p_val, p_test)
-    if solution_printer.solution_count() == 0:
-        import pdb; pdb.set_trace()
+
     random_fold = np.random.randint(3*len(solutions)//4, len(solutions), size=1)
     random_fold = random_fold[0]
     solution = solutions[random_fold]
@@ -221,18 +219,16 @@ def assert_feasible(total_l_area,
         feasible = (i >= 2) and (current_area >= total_areas[i])
         if feasible is False:
             n_groups = []
-            cum_area = np.cumsum(area)
-            i = int(prop[0] * len(area))
+            cum_area = np.cumsum(area[area>0])
+            i = int(prop[0] * len(cum_area))
             for k, set_id in enumerate(set_order):
                 n_groups.append(cum_area[i])
-                i += int(prop[k+1] * len(area))
-            import pdb
-            pdb.set_trace()
-            total_l_area[class_id] = n_groups[np.where(set_order == 0)[0]]
-            total_v_area[class_id] = n_groups[np.where(set_order == 1)[0]]
-            total_t_area[class_id] = n_groups[np.where(set_order == 2)[0]]
+                if k < 2:
+                    i += int(prop[k+1] * len(cum_area))
+            total_l_area[class_id] = n_groups[np.where(set_order == 0)[0][0]]
+            total_v_area[class_id] = n_groups[np.where(set_order == 1)[0][0]]
+            total_t_area[class_id] = n_groups[np.where(set_order == 2)[0][0]]
             print(f'Class {class_id+1}: unresolved constraints')
         feasibility = feasibility and feasible
-    print('Feasibility: ', feasibility)
     return total_l_area, total_v_area, total_t_area
 
