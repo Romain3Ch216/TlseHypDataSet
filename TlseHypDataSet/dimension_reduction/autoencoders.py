@@ -2,6 +2,40 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from TlseHypDataSet.utils.spectral import get_continuous_bands, SpectralWrapper
+import pkgutil
+import csv
+import numpy as np
+
+
+__all__ = [
+    'pretrained_encoder'
+]
+
+
+def pretrained_encoder(device):
+    # read bbl
+    bbl = []
+    metadata = pkgutil.get_data(__name__, "metadata/tlse_metadata.txt")
+    data_reader = csv.reader(metadata.decode('utf-8').splitlines(), delimiter=' ')
+
+    for i, line in enumerate(data_reader):
+        if i > 0:
+            bbl.append(line[1] == 'True')
+        bbl = np.array(bbl)
+
+    # load pretrained weights
+    checkpoint = torch.load('pretrained_autoencoder.pth.tar', map_locaion=device)
+    pretrained_weights = checkpoint['state_dict']
+
+    # define auto_encoder
+    auto_encoder = AutoEncoder(310,
+                               bbl,
+                               pretrained_weights['convs.models.conv-0.0.weight'].shape[0],
+                               pretrained_weights['encoder.1.weight'].shape[0],
+                               pretrained_weights['decoder.0.weight'].shape[1],
+                               dropout=0)
+    auto_encoder.load_state_dict(pretrained_weights)
+    return auto_encoder
 
 
 class Encoding:

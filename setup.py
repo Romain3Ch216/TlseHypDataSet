@@ -7,7 +7,7 @@ setup(
     url='https://github.com/Romain3Ch216/TlseHypDataSet',
     author='Romain Thoreau',
     author_email='romain.thoreau@onera.fr',
-    packages=['TlseHypDataSet', 'TlseHypDataSet/utils'],
+    packages=['TlseHypDataSet', 'TlseHypDataSet/utils', 'TlseHypDataSet/dimension_reduction'],
     package_dir={'TlseHypDataSet': 'TlseHypDataSet'},
     include_package_data=True,
     install_requires=['numpy',
