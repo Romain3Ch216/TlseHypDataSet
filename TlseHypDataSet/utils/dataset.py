@@ -30,7 +30,7 @@ def spatial_disjoint_split(dataset, p_labeled, p_val, p_test):
     return labeled_set, unlabeled_set, validation_set, test_set, proportions
 
 
-def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_solutions: int = 1000) -> np.ndarray:
+def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_solutions: int = 1000, fold: int = None) -> np.ndarray:
     """
     Solves a SAT problem to optimally split the ground truth in a labeled, unlabeled and test sets.
 
@@ -142,9 +142,12 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
 
         dataset.save_splits(solutions, p_labeled, p_val, p_test)
 
-    random_fold = np.random.randint(3*len(solutions)//4, len(solutions), size=1)
-    random_fold = random_fold[0]
-    solution = solutions[random_fold]
+    if fold is None:
+        random_fold = np.random.randint(3*len(solutions)//4, len(solutions), size=1)
+        fold = random_fold[0]
+    else:
+        assert fold < len(solutions), "Fold must be inferior to the number of solutions, i.e. {}".format(len(solutions))
+    solution = solutions[fold]
     array_solution = np.zeros((n_sets, areas.shape[0]))
     for k, v in solution.items():
         array_solution[k[1], k[0]] = v
