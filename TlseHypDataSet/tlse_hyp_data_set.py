@@ -281,7 +281,8 @@ class TlseHypDataSet(Dataset):
         return paths
 
     def split_already_computed(self, p_labeled, p_val, p_test):
-        file = 'ground_truth_split_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(p_labeled, p_val, p_test)
+        images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
+        file = 'ground_truth_split_{}_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(images, p_labeled, p_val, p_test)
         already_computed = file in os.listdir(os.path.join(self.root_path, 'outputs'))
         if already_computed:
             print('Data sets split is already computed')
@@ -290,15 +291,17 @@ class TlseHypDataSet(Dataset):
         return already_computed
 
     def load_splits(self, p_labeled, p_val, p_test):
-        file = os.path.join(self.root_path, 'outputs', 'ground_truth_split_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(
-            p_labeled, p_val, p_test))
+        images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
+        file = os.path.join(self.root_path, 'outputs', 'ground_truth_split_{}_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(
+            images, p_labeled, p_val, p_test))
         with open(os.path.join(self.root_path, file), 'rb') as f:
             data = pkl.load(f)
         return data
 
     def save_splits(self, solutions, p_labeled, p_val, p_test):
-        file = os.path.join(self.root_path, 'outputs', 'ground_truth_split_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(
-            p_labeled, p_val, p_test))
+        images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
+        file = os.path.join(self.root_path, 'outputs', 'ground_truth_split_{}_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(
+            images, p_labeled, p_val, p_test))
         with open(os.path.join(self.root_path, file), 'wb') as f:
             pkl.dump(solutions, f)
 

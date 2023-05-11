@@ -1,3 +1,5 @@
+import pdb
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -5,7 +7,9 @@ from TlseHypDataSet.utils.spectral import get_continuous_bands, SpectralWrapper
 import pkgutil
 import csv
 import numpy as np
-
+import pickle as pkl
+import pkg_resources
+import os
 
 __all__ = [
     'pretrained_encoder'
@@ -15,16 +19,18 @@ __all__ = [
 def pretrained_encoder(device):
     # read bbl
     bbl = []
-    metadata = pkgutil.get_data(__name__, "metadata/tlse_metadata.txt")
+    metadata = pkgutil.get_data(__name__, "../metadata/tlse_metadata.txt")
     data_reader = csv.reader(metadata.decode('utf-8').splitlines(), delimiter=' ')
 
     for i, line in enumerate(data_reader):
         if i > 0:
             bbl.append(line[1] == 'True')
-        bbl = np.array(bbl)
+    bbl = np.array(bbl)
 
     # load pretrained weights
-    checkpoint = torch.load('pretrained_autoencoder.pth.tar', map_locaion=device)
+    checkpoint = torch.load(
+        pkg_resources.resource_stream("TlseHypDataSet.dimension_reduction", "pretrained_params.pt"),
+        map_location=device)
     pretrained_weights = checkpoint['state_dict']
 
     # define auto_encoder
@@ -82,6 +88,7 @@ class AutoEncoder(nn.Module):
                 nn.MaxPool1d(kernel_size=2),
                 nn.ReLU()
             )
+            convs[f'conv-{i}'].n_channels = n_bands[i]
         self.convs = SpectralWrapper(convs)
 
         self.encoder = nn.Sequential(

@@ -1,1 +1,3 @@
 include TlseHypDataSet/metadata/*.txt
+include TlseHypDataSet/dimension_reduction/pretrained_params.pkl
+include TlseHypDataSet/dimension_reduction/pretrained_params.pt
