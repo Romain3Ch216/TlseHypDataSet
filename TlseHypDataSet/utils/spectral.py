@@ -1,3 +1,5 @@
+import pdb
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -25,11 +27,11 @@ class SpectralWrapper(nn.Module):
         z, B = {}, 0
 
         for model_id, model in self.models.items():
-            z[model_id] = model(x[:, B:B+model.n_channels])
+            z[model_id] = model(x[:, :, B:B+model.n_channels])
             B += model.n_channels
 
         keys = list(z.keys())
-        out = torch.cat([torch.from_numpy(z[keys[i]]) for i in range(len(z))], dim=1)
+        out = torch.cat([z[keys[i]] for i in range(len(z))], dim=-1)
 
         return out
 

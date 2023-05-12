@@ -8,8 +8,8 @@ __all__ = [
 ]
 
 
-def spatial_disjoint_split(dataset, p_labeled, p_val, p_test):
-    proportions, split = sat_split_solver(dataset, p_labeled, p_val, p_test)
+def spatial_disjoint_split(dataset, p_labeled, p_val, p_test, with_proportions=False, with_indices=False, fold : int = None):
+    proportions, split = sat_split_solver(dataset, p_labeled, p_val, p_test, fold=fold)
     all_groups = np.unique(dataset.ground_truth['Group'])
     groups_in_labeled_set = all_groups[split == 0]
     groups_in_unlabeled_set = all_groups[split == 1]
@@ -23,11 +23,24 @@ def spatial_disjoint_split(dataset, p_labeled, p_val, p_test):
         indices = np.where(indices == 1)[0]
         return indices
 
-    labeled_set = Subset(dataset, get_indices(groups_in_labeled_set, dataset.samples[:, 1]))
-    unlabeled_set = Subset(dataset, get_indices(groups_in_unlabeled_set, dataset.samples[:, 1]))
-    validation_set = Subset(dataset, get_indices(groups_in_validation_set, dataset.samples[:, 1]))
-    test_set = Subset(dataset, get_indices(groups_in_test_set, dataset.samples[:, 1]))
-    return labeled_set, unlabeled_set, validation_set, test_set, proportions
+    indices = (get_indices(groups_in_labeled_set, dataset.samples[:, 1]),
+               get_indices(groups_in_unlabeled_set, dataset.samples[:, 1]),
+               get_indices(groups_in_validation_set, dataset.samples[:, 1]),
+               get_indices(groups_in_test_set, dataset.samples[:, 1]))
+
+    labeled_set = Subset(dataset, indices[0])
+    unlabeled_set = Subset(dataset, indices[1])
+    validation_set = Subset(dataset, indices[2])
+    test_set = Subset(dataset, indices[3])
+
+    if (with_proportions is False) and (with_indices is False):
+        return labeled_set, unlabeled_set, validation_set
+    elif with_proportions and with_indices:
+        return labeled_set, unlabeled_set, validation_set, test_set, proportions, indices
+    elif with_proportions:
+        return labeled_set, unlabeled_set, validation_set, test_set, proportions
+    elif with_indices:
+        return labeled_set, unlabeled_set, validation_set, test_set, indices
 
 
 def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_solutions: int = 1000, fold: int = None) -> np.ndarray:

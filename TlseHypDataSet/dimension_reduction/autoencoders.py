@@ -7,9 +7,8 @@ from TlseHypDataSet.utils.spectral import get_continuous_bands, SpectralWrapper
 import pkgutil
 import csv
 import numpy as np
-import pickle as pkl
+from tqdm import tqdm
 import pkg_resources
-import os
 
 __all__ = [
     'pretrained_encoder'
@@ -40,19 +39,20 @@ def pretrained_encoder(device):
                                pretrained_weights['encoder.1.weight'].shape[0],
                                pretrained_weights['decoder.0.weight'].shape[1],
                                dropout=0)
+
     auto_encoder.load_state_dict(pretrained_weights)
     return auto_encoder
 
 
 class Encoding:
-    def __init__(self, autoencoder, lr, epochs):
+    def __init__(self, autoencoder, lr=1e-4, epochs=100):
         self.autoencoder = autoencoder
-        self.optim = torch.optim.Adam(lr=lr)
+        self.optim = torch.optim.Adam(self.autoencoder.parameters(), lr=lr)
         self.epochs = epochs
 
     def fit(self, data_loader):
         for epoch in range(self.epochs):
-            for x, _ in data_loader:
+            for x, _ in tqdm(data_loader, total=len(data_loader), desc='Encoding data...'):
                 z, r = self.autoencoder(x)
                 loss = F.mse_loss(x, r)
                 loss.backward()
@@ -61,7 +61,7 @@ class Encoding:
 
     def transform(self, data_loader):
         proj = []
-        for x, _ in data_loader:
+        for x, _ in tqdm(data_loader, total=len(data_loader), desc='Encoding data...'):
             with torch.no_grad():
                 z = self.autoencoder.encode(x)
                 proj.append(z)
@@ -82,10 +82,10 @@ class AutoEncoder(nn.Module):
         for i in range(len(n_bands)):
             convs[f'conv-{i}'] = nn.Sequential(
                 nn.Conv1d(in_channels=1, out_channels=int_channels, kernel_size=n_bands[i]//5),
-                nn.MaxPool1d(kernel_size=3),
+                nn.MaxPool1d(kernel_size=1),
                 nn.ReLU(),
                 nn.Conv1d(in_channels=int_channels, out_channels=int_channels, kernel_size=n_bands[i]//5),
-                nn.MaxPool1d(kernel_size=2),
+                nn.MaxPool1d(kernel_size=1),
                 nn.ReLU()
             )
             convs[f'conv-{i}'].n_channels = n_bands[i]
@@ -107,9 +107,9 @@ class AutoEncoder(nn.Module):
             nn.ReLU(),
             nn.Linear(h_dim, h_dim),
             nn.ReLU(),
-            nn.Linear(z_dim, h_dim),
+            nn.Linear(h_dim, h_dim),
             nn.ReLU(),
-            nn.Linear(z_dim, h_dim),
+            nn.Linear(h_dim, h_dim),
             nn.ReLU(),
             nn.Linear(h_dim, x_dim),
             nn.Sigmoid()
