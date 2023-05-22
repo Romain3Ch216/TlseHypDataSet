@@ -305,6 +305,16 @@ class TlseHypDataSet(Dataset):
         with open(os.path.join(self.root_path, file), 'wb') as f:
             pkl.dump(solutions, f)
 
+    @property
+    def proj_data(self):
+        file = os.path.join(self.root_path, 'outputs', 'proj_data.npy')
+        if file in os.listdir(os.path.join(self.root_path, 'outputs')):
+            proj_data = np.load(file)
+            return proj_data
+        else:
+            raise ValueError('Data has not been projected yet.')
+
+
     def compute_patches(self):
         polygons_by_image = self.ground_truth.groupby(by='Image')
         groups, images, patch_coordinates = [], [], []
