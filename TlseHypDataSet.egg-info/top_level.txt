@@ -1,2 +1,3 @@
 TlseHypDataSet
+TlseHypDataSet/dimension_reduction
 TlseHypDataSet/utils
