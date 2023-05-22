@@ -307,8 +307,8 @@ class TlseHypDataSet(Dataset):
 
     @property
     def proj_data(self):
-        file = os.path.join(self.root_path, 'outputs', 'proj_data.npy')
-        if file in os.listdir(os.path.join(self.root_path, 'outputs')):
+        file = os.path.join(self.root_path, 'outputs', 'data_proj.npy')
+        if 'data_proj.npy' in os.listdir(os.path.join(self.root_path, 'outputs')):
             proj_data = np.load(file)
             return proj_data
         else:
