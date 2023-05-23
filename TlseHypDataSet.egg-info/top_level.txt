@@ -1,3 +1,4 @@
 TlseHypDataSet
+TlseHypDataSet/default_splits
 TlseHypDataSet/dimension_reduction
 TlseHypDataSet/utils

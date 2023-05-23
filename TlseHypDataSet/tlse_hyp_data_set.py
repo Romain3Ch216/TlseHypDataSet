@@ -125,10 +125,8 @@ class TlseHypDataSet(Dataset):
 
         self.default_splits = []
         for split_id in range(1, 6):
-            with open(
-                    pkg_resources.resource_stream("TlseHypDataSet.default_splits", "split_{}.pkl".format(split_id)),
-                    'rb') as f:
-                self.default_splits.append(pkl.load(f))
+            split = pkl.load(pkg_resources.resource_stream("TlseHypDataSet.default_splits", "split_{}.pkl".format(split_id)))
+            self.default_splits.append(split)
 
 
     def read_metadata(self):

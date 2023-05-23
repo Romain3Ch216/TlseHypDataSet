@@ -11,6 +11,12 @@ TlseHypDataSet.egg-info/SOURCES.txt
 TlseHypDataSet.egg-info/dependency_links.txt
 TlseHypDataSet.egg-info/requires.txt
 TlseHypDataSet.egg-info/top_level.txt
+TlseHypDataSet/default_splits/__init__.py
+TlseHypDataSet/default_splits/split_1.pkl
+TlseHypDataSet/default_splits/split_2.pkl
+TlseHypDataSet/default_splits/split_3.pkl
+TlseHypDataSet/default_splits/split_4.pkl
+TlseHypDataSet/default_splits/split_5.pkl
 TlseHypDataSet/dimension_reduction/__init__.py
 TlseHypDataSet/dimension_reduction/autoencoders.py
 TlseHypDataSet/dimension_reduction/pretrained_params.pt

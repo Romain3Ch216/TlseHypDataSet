@@ -12,22 +12,14 @@ __all__ = [
 class DisjointDataSplit:
     def __init__(self, dataset, splits=None, proportions=None, n_solutions=1000):
         self.dataset = dataset
-        if self.splits is None:
-            self.splits = sat_split_solver(dataset,
+        if splits is None:
+            self.splits_ = sat_split_solver(dataset,
                                            p_labeled=proportions[0],
                                            p_val=proportions[1],
                                            p_test=proportions[2],
                                            n_solutions=n_solutions)
         else:
-            self.splits = splits
-
-    @property
-    def splits_(self):
-        array_solution = np.zeros((4, self.dataset.areas.shape[0]))
-        for k, v in self.splits.items():
-            array_solution[k[1], k[0]] = v
-        array_solution = np.argmax(array_solution, axis=0)
-        return array_solution
+            self.splits_ = splits
 
     @property
     def groups_(self):
@@ -196,7 +188,11 @@ def sat_split_solver(dataset,
     # assert solution_printer.solution_count() == 100
     solutions = solution_printer.solutions()
     final_solution = solutions[-1]
-    return final_solution
+    array_solution = np.zeros((n_sets, self.dataset.areas.shape[0]))
+    for k, v in final_solution.items():
+        array_solution[k[1], k[0]] = v
+    array_solution = np.argmax(array_solution, axis=0)
+    return array_solution
 
 
 class VarArraySolutionPrinterWithLimit(cp_model.CpSolverSolutionCallback):
