@@ -16,6 +16,7 @@ import pkgutil
 import csv
 import seaborn as sns
 import h5py
+import pkg_resources
 
 
 __all__ = [
@@ -121,6 +122,14 @@ class TlseHypDataSet(Dataset):
                 print('Loading whole data on device...')
                 self.h5py_data = self.h5py_data[()]
                 self.h5py_labels = self.h5py_labels[()]
+
+        self.default_splits = []
+        for split_id in range(1, 6):
+            with open(
+                    pkg_resources.resource_stream("TlseHypDataSet.default_splits", "split_{}.pkl".format(split_id)),
+                    'rb') as f:
+                self.default_splits.append(pkl.load(f))
+
 
     def read_metadata(self):
         self.wv = []
@@ -290,13 +299,21 @@ class TlseHypDataSet(Dataset):
             print('Computing data sets split...')
         return already_computed
 
-    def load_splits(self, p_labeled, p_val, p_test, timestamp):
-        images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
-        file = os.path.join(self.root_path, 'outputs', 'ground_truth_split_{}_{}_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(
-            timestamp, images, p_labeled, p_val, p_test))
-        with open(os.path.join(self.root_path, file), 'rb') as f:
-            data = pkl.load(f)
-        return data
+    def load_splits(self, default=True, path=None, p_labeled=None, p_val=None, p_test=None, fold=None):
+        if path is None:
+            assert (p_labeled is not None) and (p_val is not None) and (p_test is not None) and (fold is not None), \
+            "If a path is not given, then the proportions p_labeled, p_val and p_test must be provided, as well as the fold number"
+
+            images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
+            file = os.path.join(self.root_path, 'outputs', 'ground_truth_split_{}_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(
+                images, p_labeled, p_val, p_test))
+            with open(file, 'rb') as f:
+                splits = pkl.load(f)
+            splits = splits[fold]
+        else:
+            with open(os.path.join(self.root_path, 'outputs'), 'rb') as f:
+                splits = pkl.load(f)
+        return splits
 
     def save_splits(self, solutions, p_labeled, p_val, p_test, timestamp):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
@@ -468,3 +485,10 @@ class TlseHypDataSet(Dataset):
             sample, gt = self.transform((sample, gt))
 
         return sample, gt
+
+
+class Split:
+    def __init__(self, split):
+        with open(path, 'rb') as f:
+            self.sets = pkl.load(f)
+

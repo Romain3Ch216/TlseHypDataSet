@@ -1,50 +1,95 @@
 import numpy as np
 from ortools.sat.python import cp_model
 from torch.utils.data import Subset
-import datetime
 
 
 __all__ = [
-    'spatial_disjoint_split'
+    'DisjointDataSplit',
+    'sat_split_solver'
 ]
 
 
-def spatial_disjoint_split(dataset, p_labeled, p_val, p_test, with_proportions=False, with_indices=False, fold : int = None, n_solutions: int = 1000, duplicate=False, timestamp=None):
-    proportions, split = sat_split_solver(dataset, p_labeled, p_val, p_test, fold=fold, n_solutions=n_solutions, duplicate=duplicate, timestamp=timestamp)
-    all_groups = np.unique(dataset.ground_truth['Group'])
-    groups_in_labeled_set = all_groups[split == 0]
-    groups_in_unlabeled_set = all_groups[split == 1]
-    groups_in_validation_set = all_groups[split == 2]
-    groups_in_test_set = all_groups[split == 3]
+class DisjointDataSplit:
+    def __init__(self, dataset, splits=None, proportions=None, n_solutions=1000):
+        self.dataset = dataset
+        if self.splits is None:
+            self.splits = sat_split_solver(dataset,
+                                           p_labeled=proportions[0],
+                                           p_val=proportions[1],
+                                           p_test=proportions[2],
+                                           n_solutions=n_solutions)
+        else:
+            self.splits = splits
 
-    def get_indices(groups_in_set, groups):
-        indices = np.zeros_like(groups)
-        for group in groups_in_set:
-            indices += group == groups
-        indices = np.where(indices == 1)[0]
+    @property
+    def splits_(self):
+        array_solution = np.zeros((4, self.dataset.areas.shape[0]))
+        for k, v in self.splits.items():
+            array_solution[k[1], k[0]] = v
+        array_solution = np.argmax(array_solution, axis=0)
+        return array_solution
+
+    @property
+    def groups_(self):
+        all_groups = np.unique(self.dataset.ground_truth['Group'])
+        groups = {
+            'labeled': all_groups[self.splits_ == 0],
+            'unlabeled': all_groups[self.splits_ == 1],
+            'validation': all_groups[self.splits_ == 2],
+            'test': all_groups[self.splits_ == 3]
+        }
+        return groups
+
+    @property
+    def sets_(self):
+        indices = self.indices_
+        sets = {
+            'labeled': Subset(self.dataset, indices['labeled']),
+            'unlabeled': Subset(self.dataset, indices['unlabeled']),
+            'validation': Subset(self.dataset, indices['validation']),
+            'test': Subset(self.dataset, indices['test'])
+        }
+        return sets
+
+    @property
+    def indices_(self):
+        def get_indices(groups_in_set, groups):
+            indices = np.zeros_like(groups)
+            for group in groups_in_set:
+                indices += group == groups
+            indices = np.where(indices == 1)[0]
+            return indices
+
+        groups = self.groups_
+        indices = {
+            'labeled': get_indices(groups['labeled'], self.dataset.samples[:, 1]),
+            'unlabeled': get_indices(groups['unlabeled'], self.dataset.samples[:, 1]),
+            'validation': get_indices(groups['validation'], self.dataset.samples[:, 1]),
+            'test': get_indices(groups['test'], self.dataset.samples[:, 1]),
+
+        }
         return indices
 
-    indices = (get_indices(groups_in_labeled_set, dataset.samples[:, 1]),
-               get_indices(groups_in_unlabeled_set, dataset.samples[:, 1]),
-               get_indices(groups_in_validation_set, dataset.samples[:, 1]),
-               get_indices(groups_in_test_set, dataset.samples[:, 1]))
-
-    labeled_set = Subset(dataset, indices[0])
-    unlabeled_set = Subset(dataset, indices[1])
-    validation_set = Subset(dataset, indices[2])
-    test_set = Subset(dataset, indices[3])
-
-    if (with_proportions is False) and (with_indices is False):
-        return labeled_set, unlabeled_set, validation_set
-    elif with_proportions and with_indices:
-        return labeled_set, unlabeled_set, validation_set, test_set, proportions, indices
-    elif with_proportions:
-        return labeled_set, unlabeled_set, validation_set, test_set, proportions
-    elif with_indices:
-        return labeled_set, unlabeled_set, validation_set, test_set, indices
+    @property
+    def proportions_(self):
+        labeled_areas = np.sum(self.dataset.areas[self.splits_ == 0, :], axis=0) / np.sum(self.dataset.areas, axis=0)
+        unlabeled_areas = np.sum(self.dataset.areas[self.splits_ == 1, :], axis=0) / np.sum(self.dataset.areas, axis=0)
+        validation_areas = np.sum(self.dataset.areas[self.splits_ == 2, :], axis=0) / np.sum(self.dataset.areas, axis=0)
+        test_areas = np.sum(self.dataset.areas[self.splits_ == 3, :], axis=0) / np.sum(self.dataset.areas, axis=0)
+        proportions = {
+            'labeled': labeled_areas,
+            'unlabeled': unlabeled_areas,
+            'validation':validation_areas,
+            'test': test_areas
+        }
+        return proportions
 
 
-def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_solutions: int = 1000, fold: int = None, duplicate = False, timestamp=None) -> np.ndarray:
+def sat_split_solver(dataset,
+                     p_labeled: float,
+                     p_val: float,
+                     p_test: float,
+                     n_solutions: int = 1000) -> np.ndarray:
     """
     Solves a SAT problem to optimally split the ground truth in a labeled, unlabeled and test sets.
 
@@ -66,113 +111,92 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
     areas = dataset.areas
     total_area = int(np.sum(areas))
 
-    if duplicate is False and dataset.split_already_computed(p_labeled, p_val, p_test, timestamp):
-        solutions = dataset.load_splits(p_labeled, p_val, p_test, timestamp)
-    else:
-        # Compute minimum areas for each class
-        non_zeros_groups = np.sum(areas > 0, axis=0)
-        prop = np.array([p_labeled, p_val, p_test])
-        prop = np.sort(prop)
-        total_l_area, total_v_area, total_t_area = [], [], []
-        for class_id in range(areas.shape[1]):
-            if non_zeros_groups[class_id] <= 5:
-                class_areas = areas[:, class_id]
-                class_areas = class_areas[class_areas > 0]
-                class_areas = np.sort(class_areas)
-                if p_labeled > 0:
-                    total_l_area.append(class_areas[np.where(prop == p_labeled)[0][0]] / p_labeled)
-                else:
-                    total_l_area.append(0)
-                if p_val > 0:
-                    total_v_area.append(class_areas[np.where(prop == p_val)[0][0]] / p_val)
-                else:
-                    total_v_area.append(0)
-                if p_test > 0:
-                    total_t_area.append(class_areas[np.where(prop == p_test)[0][0]] / p_test)
-                else:
-                    total_t_area.append(0)
+    # Compute minimum areas for each class
+    non_zeros_groups = np.sum(areas > 0, axis=0)
+    prop = np.array([p_labeled, p_val, p_test])
+    prop = np.sort(prop)
+    total_l_area, total_v_area, total_t_area = [], [], []
+    for class_id in range(areas.shape[1]):
+        if non_zeros_groups[class_id] <= 5:
+            class_areas = areas[:, class_id]
+            class_areas = class_areas[class_areas > 0]
+            class_areas = np.sort(class_areas)
+            if p_labeled > 0:
+                total_l_area.append(class_areas[np.where(prop == p_labeled)[0][0]] / p_labeled)
             else:
-                total_v_area.append(np.sum(areas[:, class_id]))
-                total_l_area.append(np.sum(areas[:, class_id]))
-                total_t_area.append(np.sum(areas[:, class_id]))
-        total_l_area, total_v_area, total_t_area = assert_feasible(total_l_area, total_v_area, total_t_area, p_labeled, p_val, p_test, areas)
-        # Initialize SAT model
-        model = cp_model.CpModel()
-        # sets is a dict which keys (i, j) are linked to values equal to 1 if group i is in set j, 0 otherwise
-        sets = {}
-        for group_id in range(areas.shape[0]):
-            for set_ in range(n_sets):
-                sets[group_id, set_] = model.NewBoolVar(name='group_%i_set_%i' % (group_id, set_))
-            # Each group belongs to one and only one set
-            model.Add(sum([sets[group_id, k] for k in range(n_sets)]) == 1) #, "group_in_set")
+                total_l_area.append(0)
+            if p_val > 0:
+                total_v_area.append(class_areas[np.where(prop == p_val)[0][0]] / p_val)
+            else:
+                total_v_area.append(0)
+            if p_test > 0:
+                total_t_area.append(class_areas[np.where(prop == p_test)[0][0]] / p_test)
+            else:
+                total_t_area.append(0)
+        else:
+            total_v_area.append(np.sum(areas[:, class_id]))
+            total_l_area.append(np.sum(areas[:, class_id]))
+            total_t_area.append(np.sum(areas[:, class_id]))
+    total_l_area, total_v_area, total_t_area = assert_feasible(total_l_area, total_v_area, total_t_area, p_labeled, p_val, p_test, areas)
+    # Initialize SAT model
+    model = cp_model.CpModel()
+    # sets is a dict which keys (i, j) are linked to values equal to 1 if group i is in set j, 0 otherwise
+    sets = {}
+    for group_id in range(areas.shape[0]):
+        for set_ in range(n_sets):
+            sets[group_id, set_] = model.NewBoolVar(name='group_%i_set_%i' % (group_id, set_))
+        # Each group belongs to one and only one set
+        model.Add(sum([sets[group_id, k] for k in range(n_sets)]) == 1) #, "group_in_set")
 
-        for class_id in range(areas.shape[1]):
-            # Minimum area constraint in the labeled set
-            model.Add(
-                sum([areas[group_id, class_id] * sets[group_id, 0]
-                     for group_id in range(areas.shape[0])]) >= int(p_labeled * total_l_area[class_id]))
-            # Minimum area constraint in the validation set
-            model.Add(
-                sum([areas[group_id, class_id] * sets[group_id, 2]
-                     for group_id in range(areas.shape[0])]) >= int(p_val * total_v_area[class_id]))
-            # Minimum area constraint in the test set
-            model.Add(
-                sum([areas[group_id, class_id] * sets[group_id, 3]
-                     for group_id in range(areas.shape[0])]) >= int(p_test * total_t_area[class_id]))
-
-        # Upper bounds of labeled and test areas
-        labeled_area = model.NewIntVar(0, total_area, name="labeled_area")
-        val_area = model.NewIntVar(0, total_area, name="val_area")
-        test_area = model.NewIntVar(0, total_area, name="test_area")
+    for class_id in range(areas.shape[1]):
+        # Minimum area constraint in the labeled set
         model.Add(
-            labeled_area >= sum([
-                sum([
-                    areas[group_id, class_id] * sets[group_id, 0]
-                    for group_id in range(areas.shape[0])])
-                for class_id in range(areas.shape[1])]))
+            sum([areas[group_id, class_id] * sets[group_id, 0]
+                 for group_id in range(areas.shape[0])]) >= int(p_labeled * total_l_area[class_id]))
+        # Minimum area constraint in the validation set
         model.Add(
-            val_area >= sum([
-                sum([
-                    areas[group_id, class_id] * sets[group_id, 2]
-                    for group_id in range(areas.shape[0])])
-                for class_id in range(areas.shape[1])]))
+            sum([areas[group_id, class_id] * sets[group_id, 2]
+                 for group_id in range(areas.shape[0])]) >= int(p_val * total_v_area[class_id]))
+        # Minimum area constraint in the test set
         model.Add(
-            test_area >= sum([
-                sum([
-                    areas[group_id, class_id] * sets[group_id, 3]
-                    for group_id in range(areas.shape[0])])
-                for class_id in range(areas.shape[1])]))
+            sum([areas[group_id, class_id] * sets[group_id, 3]
+                 for group_id in range(areas.shape[0])]) >= int(p_test * total_t_area[class_id]))
 
-        # Objective function
-        model.Minimize(labeled_area + val_area + test_area)
-        solver = cp_model.CpSolver()
-        solution_printer = VarArraySolutionPrinterWithLimit(sets, n_solutions)
-        solver.parameters.enumerate_all_solutions = True
-        status = solver.Solve(model, solution_printer)
-        # print('Status = %s' % solver.StatusName(status))
-        print('Number of solutions found: %i' % solution_printer.solution_count())
-        # assert solution_printer.solution_count() == 100
-        solutions = solution_printer.solutions()
-        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        dataset.save_splits(solutions, p_labeled, p_val, p_test, timestamp)
+    # Upper bounds of labeled and test areas
+    labeled_area = model.NewIntVar(0, total_area, name="labeled_area")
+    val_area = model.NewIntVar(0, total_area, name="val_area")
+    test_area = model.NewIntVar(0, total_area, name="test_area")
+    model.Add(
+        labeled_area >= sum([
+            sum([
+                areas[group_id, class_id] * sets[group_id, 0]
+                for group_id in range(areas.shape[0])])
+            for class_id in range(areas.shape[1])]))
+    model.Add(
+        val_area >= sum([
+            sum([
+                areas[group_id, class_id] * sets[group_id, 2]
+                for group_id in range(areas.shape[0])])
+            for class_id in range(areas.shape[1])]))
+    model.Add(
+        test_area >= sum([
+            sum([
+                areas[group_id, class_id] * sets[group_id, 3]
+                for group_id in range(areas.shape[0])])
+            for class_id in range(areas.shape[1])]))
 
-    if fold is None:
-        random_fold = np.random.randint(3*len(solutions)//4, len(solutions), size=1)
-        fold = random_fold[0]
-    else:
-        assert fold < len(solutions), "Fold must be inferior to the number of solutions, i.e. {}".format(len(solutions))
-    solution = solutions[fold]
-    array_solution = np.zeros((n_sets, areas.shape[0]))
-    for k, v in solution.items():
-        array_solution[k[1], k[0]] = v
-    array_solution = np.argmax(array_solution, axis=0)
-
-    labeled_areas = np.sum(areas[array_solution == 0, :], axis=0) / np.sum(areas, axis=0)
-    unlabeled_areas = np.sum(areas[array_solution == 1, :], axis=0) / np.sum(areas, axis=0)
-    validation_areas = np.sum(areas[array_solution == 2, :], axis=0) / np.sum(areas, axis=0)
-    test_areas = np.sum(areas[array_solution == 3, :], axis=0) / np.sum(areas, axis=0)
-    proportions = [labeled_areas, unlabeled_areas, validation_areas, test_areas]
-    return proportions, array_solution
+    # Objective function
+    model.Minimize(labeled_area + val_area + test_area)
+    solver = cp_model.CpSolver()
+    solution_printer = VarArraySolutionPrinterWithLimit(sets, n_solutions)
+    solver.parameters.enumerate_all_solutions = True
+    status = solver.Solve(model, solution_printer)
+    # print('Status = %s' % solver.StatusName(status))
+    print('Number of solutions found: %i' % solution_printer.solution_count())
+    # assert solution_printer.solution_count() == 100
+    solutions = solution_printer.solutions()
+    final_solution = solutions[-1]
+    return final_solution
 
 
 class VarArraySolutionPrinterWithLimit(cp_model.CpSolverSolutionCallback):

@@ -1,3 +1,8 @@
 include TlseHypDataSet/metadata/*.txt
 include TlseHypDataSet/dimension_reduction/pretrained_params.pkl
 include TlseHypDataSet/dimension_reduction/pretrained_params.pt
+include TlseHypDataSet/default_splits/split_1.pkl
+include TlseHypDataSet/default_splits/split_2.pkl
+include TlseHypDataSet/default_splits/split_3.pkl
+include TlseHypDataSet/default_splits/split_4.pkl
+include TlseHypDataSet/default_splits/split_5.pkl
