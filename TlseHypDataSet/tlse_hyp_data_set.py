@@ -314,7 +314,6 @@ class TlseHypDataSet(Dataset):
         else:
             raise ValueError('Data has not been projected yet.')
 
-
     def compute_patches(self):
         polygons_by_image = self.ground_truth.groupby(by='Image')
         groups, images, patch_coordinates = [], [], []
