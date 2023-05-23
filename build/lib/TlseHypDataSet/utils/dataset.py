@@ -1,6 +1,7 @@
 import numpy as np
 from ortools.sat.python import cp_model
 from torch.utils.data import Subset
+import datetime
 
 
 __all__ = [
@@ -8,8 +9,8 @@ __all__ = [
 ]
 
 
-def spatial_disjoint_split(dataset, p_labeled, p_val, p_test, with_proportions=False, with_indices=False, fold : int = None):
-    proportions, split = sat_split_solver(dataset, p_labeled, p_val, p_test, fold=fold)
+def spatial_disjoint_split(dataset, p_labeled, p_val, p_test, with_proportions=False, with_indices=False, fold : int = None, n_solutions: int = 1000, duplicate=False, timestamp=None):
+    proportions, split = sat_split_solver(dataset, p_labeled, p_val, p_test, fold=fold, n_solutions=n_solutions, duplicate=duplicate, timestamp=timestamp)
     all_groups = np.unique(dataset.ground_truth['Group'])
     groups_in_labeled_set = all_groups[split == 0]
     groups_in_unlabeled_set = all_groups[split == 1]
@@ -43,7 +44,7 @@ def spatial_disjoint_split(dataset, p_labeled, p_val, p_test, with_proportions=F
         return labeled_set, unlabeled_set, validation_set, test_set, indices
 
 
-def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_solutions: int = 1000, fold: int = None) -> np.ndarray:
+def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_solutions: int = 1000, fold: int = None, duplicate = False, timestamp=None) -> np.ndarray:
     """
     Solves a SAT problem to optimally split the ground truth in a labeled, unlabeled and test sets.
 
@@ -65,8 +66,8 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
     areas = dataset.areas
     total_area = int(np.sum(areas))
 
-    if dataset.split_already_computed(p_labeled, p_val, p_test):
-        solutions = dataset.load_splits(p_labeled, p_val, p_test)
+    if duplicate is False and dataset.split_already_computed(p_labeled, p_val, p_test, timestamp):
+        solutions = dataset.load_splits(p_labeled, p_val, p_test, timestamp)
     else:
         # Compute minimum areas for each class
         non_zeros_groups = np.sum(areas > 0, axis=0)
@@ -152,8 +153,8 @@ def sat_split_solver(dataset, p_labeled: float, p_val: float, p_test: float, n_s
         print('Number of solutions found: %i' % solution_printer.solution_count())
         # assert solution_printer.solution_count() == 100
         solutions = solution_printer.solutions()
-
-        dataset.save_splits(solutions, p_labeled, p_val, p_test)
+        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        dataset.save_splits(solutions, p_labeled, p_val, p_test, timestamp)
 
     if fold is None:
         random_fold = np.random.randint(3*len(solutions)//4, len(solutions), size=1)
