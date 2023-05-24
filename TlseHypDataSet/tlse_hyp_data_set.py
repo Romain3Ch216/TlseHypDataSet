@@ -230,13 +230,14 @@ class TlseHypDataSet(Dataset):
         n_classes = len(classes)
         areas = np.zeros((n_groups, n_classes))
 
-        for i in range(len(groups)):
-            for j in range(n_classes):
-                group = groups[i]
-                class_id = classes[j]
-                polygons = self.ground_truth[self.ground_truth['Group'] == group]
-                polygons = polygons[polygons['Material'] == class_id]
-                areas[i, j] = polygons['geometry'].area.sum()
+        for i in range(n_classes):
+            class_id = classes[i]
+            polygons = self.ground_truth[self.ground_truth['Material'] == class_id]
+            polygons_by_groups = polygons.groupby(by='Group')
+            for group in polygons_by_groups.groups.keys():
+                group_indice = np.where(groups == group)[0][0]
+                areas[group_indice, i] == polygons_by_groups.get_group(group).area.sum()
+        pdb.set_trace()
         return areas.astype(int)
 
     def rasterize_gt_shapefile(self):

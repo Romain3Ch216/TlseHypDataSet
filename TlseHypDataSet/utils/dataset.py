@@ -12,6 +12,7 @@ __all__ = [
 class DisjointDataSplit:
     def __init__(self, dataset, splits=None, proportions=None, n_solutions=1000):
         self.dataset = dataset
+        self.areas = self.dataset.areas
         if splits is None:
             self.splits_ = sat_split_solver(dataset,
                                            p_labeled=proportions[0],
@@ -64,10 +65,12 @@ class DisjointDataSplit:
 
     @property
     def proportions_(self):
-        labeled_areas = np.sum(self.dataset.areas[self.splits_ == 0, :], axis=0) / np.sum(self.dataset.areas, axis=0)
-        unlabeled_areas = np.sum(self.dataset.areas[self.splits_ == 1, :], axis=0) / np.sum(self.dataset.areas, axis=0)
-        validation_areas = np.sum(self.dataset.areas[self.splits_ == 2, :], axis=0) / np.sum(self.dataset.areas, axis=0)
-        test_areas = np.sum(self.dataset.areas[self.splits_ == 3, :], axis=0) / np.sum(self.dataset.areas, axis=0)
+        import pdb
+        pdb.set_trace()
+        labeled_areas = np.sum(self.areas[self.splits_ == 0, :], axis=0) / np.sum(self.areas, axis=0)
+        unlabeled_areas = np.sum(self.areas[self.splits_ == 1, :], axis=0) / np.sum(self.areas, axis=0)
+        validation_areas = np.sum(self.areas[self.splits_ == 2, :], axis=0) / np.sum(self.areas, axis=0)
+        test_areas = np.sum(self.areas[self.splits_ == 3, :], axis=0) / np.sum(self.areas, axis=0)
         proportions = {
             'labeled': labeled_areas,
             'unlabeled': unlabeled_areas,
