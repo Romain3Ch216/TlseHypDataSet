@@ -17,6 +17,9 @@ TlseHypDataSet/default_splits/split_2.pkl
 TlseHypDataSet/default_splits/split_3.pkl
 TlseHypDataSet/default_splits/split_4.pkl
 TlseHypDataSet/default_splits/split_5.pkl
+TlseHypDataSet/default_splits/split_6.pkl
+TlseHypDataSet/default_splits/split_7.pkl
+TlseHypDataSet/default_splits/split_8.pkl
 TlseHypDataSet/dimension_reduction/__init__.py
 TlseHypDataSet/dimension_reduction/autoencoders.py
 TlseHypDataSet/dimension_reduction/pretrained_params.pt

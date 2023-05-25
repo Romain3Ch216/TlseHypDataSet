@@ -65,8 +65,6 @@ class DisjointDataSplit:
 
     @property
     def proportions_(self):
-        import pdb
-        pdb.set_trace()
         labeled_areas = np.sum(self.areas[self.splits_ == 0, :], axis=0) / np.sum(self.areas, axis=0)
         unlabeled_areas = np.sum(self.areas[self.splits_ == 1, :], axis=0) / np.sum(self.areas, axis=0)
         validation_areas = np.sum(self.areas[self.splits_ == 2, :], axis=0) / np.sum(self.areas, axis=0)
@@ -112,6 +110,7 @@ def sat_split_solver(dataset,
     prop = np.sort(prop)
     total_l_area, total_v_area, total_t_area = [], [], []
     for class_id in range(areas.shape[1]):
+        """
         if non_zeros_groups[class_id] <= 5:
             class_areas = areas[:, class_id]
             class_areas = class_areas[class_areas > 0]
@@ -129,9 +128,10 @@ def sat_split_solver(dataset,
             else:
                 total_t_area.append(0)
         else:
-            total_v_area.append(np.sum(areas[:, class_id]))
-            total_l_area.append(np.sum(areas[:, class_id]))
-            total_t_area.append(np.sum(areas[:, class_id]))
+        """
+        total_v_area.append(np.sum(areas[:, class_id]))
+        total_l_area.append(np.sum(areas[:, class_id]))
+        total_t_area.append(np.sum(areas[:, class_id]))
     total_l_area, total_v_area, total_t_area = assert_feasible(total_l_area, total_v_area, total_t_area, p_labeled, p_val, p_test, areas)
     # Initialize SAT model
     model = cp_model.CpModel()
@@ -190,8 +190,9 @@ def sat_split_solver(dataset,
     print('Number of solutions found: %i' % solution_printer.solution_count())
     # assert solution_printer.solution_count() == 100
     solutions = solution_printer.solutions()
-    final_solution = solutions[-1]
-    array_solution = np.zeros((n_sets, self.dataset.areas.shape[0]))
+    last_solution = list(solutions.keys())[-1]
+    final_solution = solutions[last_solution]
+    array_solution = np.zeros((n_sets, areas.shape[0]))
     for k, v in final_solution.items():
         array_solution[k[1], k[0]] = v
     array_solution = np.argmax(array_solution, axis=0)
@@ -240,8 +241,8 @@ def assert_feasible(total_l_area,
             total_v_area[class_id] * p_val,
             total_t_area[class_id] * p_test]).astype(int)
         prop = np.sort([p_labeled, p_val, p_test])
-        total_areas = np.sort(total_areas)
-        set_order = np.argsort(total_areas)
+        total_areas, set_order = np.sort(total_areas), np.argsort(total_areas)
+        # set_order = np.argsort(total_areas)
         area = areas[:, class_id]
         area = np.sort(area)
         current_area = 0
@@ -257,6 +258,8 @@ def assert_feasible(total_l_area,
                 i+= 1
                 current_area = 0
         feasible = (i >= 2) and (current_area >= total_areas[i])
+        # import pdb
+        # pdb.set_trace()
         if feasible is False:
             n_groups = []
             cum_area = np.cumsum(area[area>0])
