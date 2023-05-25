@@ -239,6 +239,11 @@ class TlseHypDataSet(Dataset):
                 areas[group_indice, i] = polygons_by_groups.get_group(group).area.sum()
         return areas.astype(int)
 
+    @property
+    def n_samples(self):
+        areas = self.areas
+        return np.sum(areas, axis=0)
+
     def rasterize_gt_shapefile(self):
         """
         Rasterize the ground truth shapefile.

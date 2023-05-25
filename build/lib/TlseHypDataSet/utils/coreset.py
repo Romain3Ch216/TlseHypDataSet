@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from typing import List
 from sklearn.decomposition import PCA
+from TlseHypDataSet.dimension_reduction.autoencoders import pretrained_encoder, Encoding
 import pickle as pkl
 import os
 
@@ -36,7 +37,7 @@ def dataset_to_tensors(dataset):
     assert sample.shape[0] == 1, "Samples must be in 1D."
     samples = torch.zeros((len(dataset), sample.shape[-1]))
     labels = torch.zeros(len(dataset))
-    loader = torch.utils.data.DataLoader(dataset, shuffle=False, batch_size=64)
+    loader = torch.utils.data.DataLoader(dataset, shuffle=False, batch_size=10000)
     i = 0
     for sample, gt in loader:
         batch_size = sample.shape[0]
@@ -45,18 +46,31 @@ def dataset_to_tensors(dataset):
         i += batch_size
     return samples, labels
 
+def dataset_to_labels(dataset):
+    sample, gt = dataset.__getitem__(0)
+    assert sample.shape[0] == 1, "Samples must be in 1D."
+    labels = torch.zeros(len(dataset))
+    loader = torch.utils.data.DataLoader(dataset, shuffle=False, batch_size=10000)
+    i = 0
+    for _, gt in loader:
+        batch_size = gt.shape[0]
+        labels[i: i+batch_size] = gt.squeeze(1)
+        i += batch_size
+    return labels
 
-def core_set_selection(dataset, budget=10, metric=None, dim_reduction='pca', n_components=8):
+
+
+def core_set_selection(dataset, budget=10, metric=None, dim_reduction='autoencoder', n_components=8):
     core_set = CoreSet(budget, metric, dim_reduction, n_components)
     file = 'core_set_selection.pkl'
     if file in os.listdir(os.path.join(dataset.root_path, 'outputs')):
         with open(os.path.join(dataset.root_path, 'outputs', file), 'rb') as f:
-            core_set_selection = pkl.load(f)
+            selection = pkl.load(f)
     else:
-        core_set_selection = core_set(dataset)
+        selection = core_set(dataset)
         with open(os.path.join(dataset.root_path, 'outputs', file), 'wb') as f:
-            pkl.dump(core_set_selection, f)
-    return core_set_selection
+            pkl.dump(selection, f)
+    return selection
 
 
 class CoreSet:
@@ -67,9 +81,16 @@ class CoreSet:
         self.n_components = n_components
 
     def transform(self, dataset):
-        data, labels = dataset_to_tensors(dataset)
         if self.dim_reduction == 'pca':
+            data, labels = dataset_to_tensors(dataset)
             proj = PCA(n_components=self.n_components).fit_transform(data)
+        elif self.dim_reduction == 'autoencoder':
+            labels = dataset_to_labels(dataset)
+            loader = torch.utils.data.DataLoader(dataset, batch_size=1024, shuffle=False, pin_memory=True)
+            encoder = Encoding(pretrained_encoder('cpu'))
+            proj = encoder.transform(loader)
+            proj = proj.numpy()
+            labels = labels.numpy()
         else:
             raise NotImplementedError("Only pca reduction available.")
         return proj, labels
