@@ -240,10 +240,15 @@ class TlseHypDataSet(Dataset):
                 areas[group_indice, i] = polygons_by_groups.get_group(group).area.sum()
         return areas.astype(int)
 
-    # @property
-    # def n_samples(self):
-    #     areas = self.areas
-    #     return np.sum(areas, axis=0)
+    @property
+    def n_samples(self):
+        n_samples_ = np.zeros(self.n_classes)
+        for gt_id in range(len(self.images_path)):
+            path = os.path.join(self.root_path, 'rasters', 'gt_Material_{}.bsq'.format(gt_id))
+            gt = rasterio.open(path)
+            for class_id in np.unique(gt):
+                n_samples_[class_id-1] += np.sum(gt == class_id)
+        return n_samples_
 
     def rasterize_gt_shapefile(self):
         """
@@ -252,8 +257,6 @@ class TlseHypDataSet(Dataset):
         gt = self.ground_truth  # gpd.read_file(os.path.join(dataset.root_path, 'GT', dataset.gt_path))
         make_dirs([os.path.join(self.root_path, 'rasters')])
         paths = {}
-
-        self.n_samples = np.zeros(self.n_classes)
 
         def shapes(gt: GeoDataFrame, attribute: str):
             indices = gt.index
@@ -283,9 +286,6 @@ class TlseHypDataSet(Dataset):
                                          dtype=dtype,
                                          transform=img.transform)
                         data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
-                        if attribute == 'Material':
-                            for class_id in np.unique(data):
-                                self.n_samples[class_id-1] += np.sum(data == class_id)
 
                         with rasterio.Env():
                             profile = img.profile
