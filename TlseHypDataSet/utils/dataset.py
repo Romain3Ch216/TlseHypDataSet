@@ -10,15 +10,24 @@ __all__ = [
 
 
 class DisjointDataSplit:
-    def __init__(self, dataset, splits=None, proportions=None, n_solutions=1000):
+    def __init__(self, dataset, splits=None, proportions=None, file=None, save=None, n_solutions=1000):
         self.dataset = dataset
         self.areas = self.dataset.areas
-        if splits is None:
+        if splits is None and file is None:
             self.splits_ = sat_split_solver(dataset,
                                            p_labeled=proportions[0],
                                            p_val=proportions[1],
                                            p_test=proportions[2],
                                            n_solutions=n_solutions)
+            """
+            if save is not None:
+                with open(file, 'wb') as f:
+                    pkl.dump(splits, f)
+            """
+
+        elif splits is None and file is not None:
+            with open(file, 'rb') as f:
+                self.splits_ = pkl.load(f)
         else:
             self.splits_ = splits
 
