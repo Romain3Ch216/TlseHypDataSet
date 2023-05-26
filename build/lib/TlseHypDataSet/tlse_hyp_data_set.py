@@ -63,7 +63,8 @@ class TlseHypDataSet(Dataset):
             'TLS_1d_2021-06-15_10-41-20_reflectance_rect',
             'TLS_9c_2021-06-15_12-56-29_reflectance_rect',
             'TLS_1b_2021-06-15_10-41-20_reflectance_rect',
-            'TLS_1e_2021-06-15_10-41-20_reflectance_rect'
+            'TLS_1e_2021-06-15_10-41-20_reflectance_rect',
+            'TLS_3e_2021-06-15_11-10-12_reflectance_rect'
         ]
 
         if self.images is not None:
@@ -75,8 +76,8 @@ class TlseHypDataSet(Dataset):
         assert ('images' in dirs_in_root) and ('GT' in dirs_in_root), \
             "Root directory should include an 'images' and a 'GT' folder."
 
-        if data_in_folder([image + '.tif' for image in self.images_path], os.path.join(root_path, 'images')) is False:
-            for image in self.images_path:
+        for image in self.images_path:
+            if data_in_folder([image + '.tif'], os.path.join(root_path, 'images')) is False:
                 assert image + '.bsq' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
                 assert image + '.hdr' in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(image)
                 tile_raster(os.path.join(self.root_path, 'images', image + '.bsq'))
@@ -86,7 +87,7 @@ class TlseHypDataSet(Dataset):
             assert gt_file in os.listdir(os.path.join(root_path, 'GT'))
 
         self.ground_truth = gpd.read_file(os.path.join(self.root_path, 'GT', self.gt_path))
-
+        import pdb; pdb.set_trace()
         self.wv = None
         self.bbl = None
         self.E_dir = None
@@ -423,7 +424,7 @@ class TlseHypDataSet(Dataset):
             self.saved_h5py = True
             print("Data already saved in .h5py files.")
         else:
-
+            self.saved_h5py = False
             data_file = h5py.File(data_file_path, "w")
             labels_file = h5py.File(labels_file_path, "w")
             if self.pred_mode == 'pixel':
