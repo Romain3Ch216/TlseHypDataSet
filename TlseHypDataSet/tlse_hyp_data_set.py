@@ -246,8 +246,10 @@ class TlseHypDataSet(Dataset):
         for gt_id in range(len(self.images_path)):
             path = os.path.join(self.root_path, 'rasters', 'gt_Material_{}.bsq'.format(gt_id))
             gt = rasterio.open(path)
+            gt = gt.read()
             for class_id in np.unique(gt):
-                n_samples_[class_id-1] += np.sum(gt == class_id)
+                if class_id != 0:
+                    n_samples_[class_id-1] += np.sum(gt == class_id)
         return n_samples_
 
     def rasterize_gt_shapefile(self):
