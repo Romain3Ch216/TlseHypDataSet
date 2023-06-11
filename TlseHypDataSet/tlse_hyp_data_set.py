@@ -492,6 +492,8 @@ class TlseHypDataSet(Dataset):
             if self.patch_size == 1:
                 sample = sample.squeeze(1)
                 gt = gt.squeeze(1)
+            if self.pred_mode == 'pixel' and self.patch_size > 1:
+                gt = gt[self.patch_size // 2, self.patch_size // 2]
 
         if self.transform is not None and (self.saved_h5py and self.h5py):
             sample, gt = self.transform((sample, gt))
