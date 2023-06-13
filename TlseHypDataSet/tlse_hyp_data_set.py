@@ -104,6 +104,7 @@ class TlseHypDataSet(Dataset):
         print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()
         print('Open ground truth rasters...')
+
         self.gt_rasters = dict(
             (att, [gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly) for gt_path in self.gts_path[att]])
             for att in self.gts_path)
@@ -347,7 +348,7 @@ class TlseHypDataSet(Dataset):
         polygons_by_image = self.ground_truth.groupby(by='Image')
         groups, images, patch_coordinates = [], [], []
         for img_id in polygons_by_image.groups:
-            image_path = os.path.join(self.root_path, 'images', self.images_path[img_id - 1])
+            image_path = os.path.join(self.root_path, 'images', self.images_path[img_id - 1]) + '.tif'
             raster = gdal.Open(image_path, gdal.GA_ReadOnly)
             transform = raster.GetGeoTransform()
             xOrigin = transform[0]
@@ -362,7 +363,6 @@ class TlseHypDataSet(Dataset):
                             yOrigin,
                             xOrigin + raster.RasterXSize * pixelWidth,
                             yOrigin - raster.RasterYSize * pixelHeight)
-
             polygons = polygons_by_image.get_group(img_id)
             for id, polygon in polygons.iterrows():
                 if (self.low_level_only is False) or (polygon['Material'] != 0):
