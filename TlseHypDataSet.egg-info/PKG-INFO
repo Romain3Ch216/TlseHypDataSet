@@ -1,8 +1,10 @@
-Metadata-Version: 2.1
+Metadata-Version: 1.0
 Name: TlseHypDataSet
 Version: 0.0.1
 Summary: A Python package to use and analyse the Toulouse Hyperspectral Data Set
 Home-page: https://github.com/Romain3Ch216/TlseHypDataSet
 Author: Romain Thoreau
 Author-email: romain.thoreau@onera.fr
-License-File: LICENSE.txt
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
