@@ -131,7 +131,6 @@ class TlseHypDataSet(Dataset):
             split = pkl.load(pkg_resources.resource_stream("TlseHypDataSet.default_splits", "split_{}.pkl".format(split_id)))
             self.default_splits.append(split)
 
-
     def read_metadata(self):
         self.wv = []
         self.bbl = []
@@ -153,6 +152,9 @@ class TlseHypDataSet(Dataset):
         self.E_dif = np.array(self.E_dif)
         self.wv = np.array(self.wv)
         self.n_bands = self.bbl.sum()
+        self.E_dir = torch.from_numpy(self.E_dir[self.bbl] / np.cos(self.theta)).float()
+        self.E_dif = torch.from_numpy(self.E_dif[self.bbl]).float()
+        self.theta = torch.tensor([self.theta]).float()
 
     @property
     def classes(self):
