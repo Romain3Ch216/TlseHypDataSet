@@ -92,6 +92,7 @@ class TlseHypDataSet(Dataset):
         self.bbl = None
         self.E_dir = None
         self.E_dif = None
+        self.theta = 22.12 * np.pi / 180
         self.n_bands = None
         self.samples = None
 
@@ -130,7 +131,6 @@ class TlseHypDataSet(Dataset):
             split = pkl.load(pkg_resources.resource_stream("TlseHypDataSet.default_splits", "split_{}.pkl".format(split_id)))
             self.default_splits.append(split)
 
-
     def read_metadata(self):
         self.wv = []
         self.bbl = []
@@ -152,6 +152,9 @@ class TlseHypDataSet(Dataset):
         self.E_dif = np.array(self.E_dif)
         self.wv = np.array(self.wv)
         self.n_bands = self.bbl.sum()
+        self.E_dir = torch.from_numpy(self.E_dir[self.bbl] / np.cos(self.theta)).float()
+        self.E_dif = torch.from_numpy(self.E_dif[self.bbl]).float()
+        self.theta = torch.tensor([self.theta]).float()
 
     @property
     def classes(self):
@@ -347,7 +350,11 @@ class TlseHypDataSet(Dataset):
     def compute_patches(self):
         polygons_by_image = self.ground_truth.groupby(by='Image')
         groups, images, patch_coordinates = [], [], []
-        for img_id in polygons_by_image.groups:
+        if self.images is None:
+            list_images = list(polygons_by_image.groups.keys())
+        else:
+            list_images = [img_id + 1 for img_id in self.images]
+        for img_id in list_images:
             image_path = os.path.join(self.root_path, 'images', self.images_path[img_id - 1]) + '.tif'
             raster = gdal.Open(image_path, gdal.GA_ReadOnly)
             transform = raster.GetGeoTransform()
