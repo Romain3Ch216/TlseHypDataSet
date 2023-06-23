@@ -87,6 +87,10 @@ class TlseHypDataSet(Dataset):
             assert gt_file in os.listdir(os.path.join(root_path, 'GT'))
 
         self.ground_truth = gpd.read_file(os.path.join(self.root_path, 'GT', self.gt_path))
+        self.unlabeled_zones = gpd.read_file(
+            pkg_resources.resource_stream("TlseHypDataSet.ground_truth", "unlabeled_zones.shp"))
+
+        pdb.set_trace()
 
         self.wv = None
         self.bbl = None
