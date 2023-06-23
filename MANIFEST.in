@@ -9,3 +9,8 @@ include TlseHypDataSet/default_splits/split_5.pkl
 include TlseHypDataSet/default_splits/split_6.pkl
 include TlseHypDataSet/default_splits/split_7.pkl
 include TlseHypDataSet/default_splits/split_8.pkl
+include TlseHypDataSet/ground_truth/unlabeled_zones.cpg
+include TlseHypDataSet/ground_truth/unlabeled_zones.dbf
+include TlseHypDataSet/ground_truth/unlabeled_zones.prj
+include TlseHypDataSet/ground_truth/unlabeled_zones.shp
+include TlseHypDataSet/ground_truth/unlabeled_zones.shx
