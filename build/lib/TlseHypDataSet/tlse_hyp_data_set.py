@@ -37,7 +37,8 @@ class TlseHypDataSet(Dataset):
                  images: List = None,
                  subset: float = 1,
                  in_h5py: bool = False,
-                 data_on_gpu: bool = False):
+                 data_on_gpu: bool = False,
+                 unlabeled: bool = False):
 
         self.name = 'Toulouse'
         self.root_path = root_path
@@ -51,6 +52,7 @@ class TlseHypDataSet(Dataset):
         self.transform = None
         self.saved_h5py = in_h5py
         self.data_on_gpu = data_on_gpu
+        self.unlabeled = unlabeled
 
         make_dirs([os.path.join(self.root_path, 'inputs')])
         make_dirs([os.path.join(self.root_path, 'outputs')])
@@ -69,6 +71,8 @@ class TlseHypDataSet(Dataset):
 
         if self.images is not None:
             self.images_path = [self.images_path[img_id] for img_id in self.images]
+        else:
+            self.images = np.arange(len(self.images_path))
 
         self.gt_path = 'ground_truth.shp'
 
@@ -87,6 +91,7 @@ class TlseHypDataSet(Dataset):
             assert gt_file in os.listdir(os.path.join(root_path, 'GT'))
 
         self.ground_truth = gpd.read_file(os.path.join(self.root_path, 'GT', self.gt_path))
+        self.unlabeled_zones = gpd.read_file(os.path.join(self.root_path, 'UGT', 'unlabeled_zones.shp'))
 
         self.wv = None
         self.bbl = None
@@ -104,18 +109,27 @@ class TlseHypDataSet(Dataset):
                               for image_path in self.images_path]
         print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()
+        self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
+
         print('Open ground truth rasters...')
-
-        self.gt_rasters = dict(
-            (att, [gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly) for gt_path in self.gts_path[att]])
-            for att in self.gts_path)
-
-        if pred_mode == 'patch':
-            self.compute_patches()
-        elif pred_mode == 'pixel':
-            self.compute_pixels()
+        if unlabeled:
+            self.unlabeled_rasters = dict(
+                (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.unlabeled_zones_path[att])])
+                for att in self.unlabeled_zones_path)
         else:
-            raise ValueError("pred_mode is either patch or pixel.")
+            self.gt_rasters = dict(
+                (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.gts_path[att])])
+                for att in self.gts_path)
+
+        if unlabeled:
+            self.compute_unlabeled_pixels()
+        else:
+            if pred_mode == 'patch':
+                self.compute_patches()
+            elif pred_mode == 'pixel':
+                self.compute_pixels()
+            else:
+                raise ValueError("pred_mode is either patch or pixel.")
 
         if self.h5py:
             print('Saving data set in h5py files...')
@@ -128,7 +142,8 @@ class TlseHypDataSet(Dataset):
 
         self.default_splits = []
         for split_id in range(1, 9):
-            split = pkl.load(pkg_resources.resource_stream("TlseHypDataSet.default_splits", "split_{}.pkl".format(split_id)))
+            split = pkl.load(pkg_resources.resource_stream(
+                "TlseHypDataSet.default_splits", "split_{}.pkl".format(split_id)))
             self.default_splits.append(split)
 
     def read_metadata(self):
@@ -305,6 +320,57 @@ class TlseHypDataSet(Dataset):
                     tile_raster(path)
         return paths
 
+    def rasterize_unlabeled_zones(self):
+        """
+        Rasterize the ground truth shapefile.
+        """
+        gt = self.unlabeled_zones  # gpd.read_file(os.path.join(dataset.root_path, 'GT', dataset.gt_path))
+        make_dirs([os.path.join(self.root_path, 'rasters')])
+        paths = {}
+
+        def shapes(gt: GeoDataFrame, attribute: str):
+            indices = gt.index
+            for i in range(len(gt)):
+                if np.isnan(gt.loc[indices[i], attribute]):
+                    yield gt.loc[indices[i], 'geometry'], 0
+                else:
+                    yield gt.loc[indices[i], 'geometry'], int(gt.loc[indices[i], attribute])
+
+        for attribute in ['Image']:
+            paths[attribute] = []
+            dtype = 'uint8'
+            rasterio_dtype = rasterio.uint8
+            gt_per_image = gt.groupby(by='Image')
+            for img_id, id in enumerate(gt_per_image.groups):
+                id = int(id)
+                img_path = self.images_path[img_id]
+                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.tif'.format(id-1)))
+                if 'unlabeled_zones_{}.tif'.format(id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                    continue
+                else:
+                    path = os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.bsq'.format(id-1))
+                    if 'unlabeled_zones_{}.bsq'.format(id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                        pass
+                    else:
+                        img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
+                        shape = img.shape
+                        data = rasterize(shapes(gt_per_image.get_group(id), attribute),
+                                         shape[:2],
+                                         dtype=dtype,
+                                         transform=img.transform)
+                        data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
+
+                        with rasterio.Env():
+                            profile = img.profile
+                            profile.update(
+                                dtype=rasterio_dtype,
+                                count=1,
+                                compress='lzw')
+                            with rasterio.open(path, 'w', **profile) as dst:
+                                dst.write(data)
+                    tile_raster(path)
+        return paths
+
     def split_already_computed(self, p_labeled, p_val, p_test, timestamp):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
         file = 'ground_truth_split_{}_{}_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(timestamp, images, p_labeled, p_val, p_test)
@@ -354,8 +420,8 @@ class TlseHypDataSet(Dataset):
             list_images = list(polygons_by_image.groups.keys())
         else:
             list_images = [img_id + 1 for img_id in self.images]
-        for img_id in list_images:
-            image_path = os.path.join(self.root_path, 'images', self.images_path[img_id - 1]) + '.tif'
+        for i, img_id in enumerate(list_images):
+            image_path = os.path.join(self.root_path, 'images', self.images_path[i]) + '.tif'
             raster = gdal.Open(image_path, gdal.GA_ReadOnly)
             transform = raster.GetGeoTransform()
             xOrigin = transform[0]
@@ -405,7 +471,7 @@ class TlseHypDataSet(Dataset):
 
     def compute_pixels(self):
         group_list, col_list, row_list, img_list = [], [], [], []
-        for img_id, (gt, groups) in enumerate(zip(self.gt_rasters['Material'], self.gt_rasters['Group'])):
+        for (img_id, gt), (_, groups) in zip(self.gt_rasters['Material'], self.gt_rasters['Group']):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
             groups = groups.ReadAsArray(gdal.GA_ReadOnly)
             coords = np.where(gt != 0)
@@ -417,6 +483,32 @@ class TlseHypDataSet(Dataset):
             col_list.extend(col_offset)
             row_list.extend(row_offset)
 
+        self.samples = np.zeros((len(group_list), 6), dtype=int)
+        self.samples[:, 0] = img_list
+        self.samples[:, 1] = group_list
+        self.samples[:, 2] = col_list
+        self.samples[:, 3] = row_list
+        self.samples[:, 4] = self.patch_size
+        self.samples[:, 5] = self.patch_size
+
+        if self.subset < 1:
+            n_samples = int(self.subset * self.samples.shape[0])
+            subset = np.random.choice(np.arange(self.samples.shape[0]), size=n_samples, replace=False)
+            self.samples = self.samples[subset]
+
+    def compute_unlabeled_pixels(self):
+        group_list, col_list, row_list, img_list = [], [], [], []
+        for img_id, gt in self.unlabeled_rasters['Image']:
+            gt = gt.ReadAsArray(gdal.GA_ReadOnly)
+            coords = np.where(gt != 0)
+            img_list.extend([img_id] * len(coords[0]))
+            group_list.extend([0] * len(coords[0]))
+            col_offset = coords[1] - self.patch_size // 2
+            row_offset = coords[0] - self.patch_size // 2
+            col_list.extend(col_offset)
+            row_list.extend(row_offset)
+
+        pdb.set_trace()
         self.samples = np.zeros((len(group_list), 6), dtype=int)
         self.samples[:, 0] = img_list
         self.samples[:, 1] = group_list
@@ -479,7 +571,16 @@ class TlseHypDataSet(Dataset):
 
             sample = self.image_rasters[image_id].ReadAsArray(col_offset, row_offset, col_size, row_size,
                                                               band_list=self.bands)
-            gt = [self.gt_rasters[att][image_id].ReadAsArray(col_offset, row_offset, col_size, row_size)
+
+            sample = np.transpose(sample, (1, 2, 0))
+            sample = sample / 10 ** 4
+            sample = np.asarray(np.copy(sample), dtype="float32")
+            sample = torch.from_numpy(sample)
+
+            if self.unlabeled:
+                return sample
+
+            gt = [self.gt_rasters[att][image_id][1].ReadAsArray(col_offset, row_offset, col_size, row_size)
                   for att in ['Material', 'Class_2', 'Class_1']]
             gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
             gt = np.concatenate(gt, axis=-1)
@@ -487,13 +588,7 @@ class TlseHypDataSet(Dataset):
             if self.low_level_only:
                 gt = gt[:, :, 0]
 
-            sample = np.transpose(sample, (1, 2, 0))
-            sample = sample / 10 ** 4
-
-            sample = np.asarray(np.copy(sample), dtype="float32")
             gt = np.asarray(np.copy(gt), dtype="int64")
-
-            sample = torch.from_numpy(sample)
             gt = torch.from_numpy(gt)
 
             if self.patch_size == 1:
