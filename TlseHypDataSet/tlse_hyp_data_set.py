@@ -341,20 +341,20 @@ class TlseHypDataSet(Dataset):
             dtype = 'uint8'
             rasterio_dtype = rasterio.uint8
             gt_per_image = gt.groupby(by='Image')
-            for img_id, id in enumerate(gt_per_image.groups):
-                id = int(id)
-                img_path = self.images_path[img_id]
-                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.tif'.format(id-1)))
+            for id in gt_per_image.groups:
+                id = int(id-1)
+                img_path = self.images_path[id]
+                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.tif'.format(id)))
                 if 'unlabeled_zones_{}.tif'.format(id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
                     continue
                 else:
-                    path = os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.bsq'.format(id-1))
-                    if 'unlabeled_zones_{}.bsq'.format(id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                    path = os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.bsq'.format(id))
+                    if 'unlabeled_zones_{}.bsq'.format(id) in os.listdir(os.path.join(self.root_path, 'rasters')):
                         pass
                     else:
                         img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
                         shape = img.shape
-                        data = rasterize(shapes(gt_per_image.get_group(id), attribute),
+                        data = rasterize(shapes(gt_per_image.get_group(id+1), attribute),
                                          shape[:2],
                                          dtype=dtype,
                                          transform=img.transform)
