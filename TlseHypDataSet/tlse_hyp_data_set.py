@@ -336,7 +336,7 @@ class TlseHypDataSet(Dataset):
                 else:
                     yield gt.loc[indices[i], 'geometry'], int(gt.loc[indices[i], attribute])
 
-        for attribute in ['Image']:
+        for attribute in ['Image', 'Group']:
             paths[attribute] = []
             dtype = 'uint8'
             rasterio_dtype = rasterio.uint8
@@ -344,12 +344,12 @@ class TlseHypDataSet(Dataset):
             for id in gt_per_image.groups:
                 id = int(id-1)
                 img_path = self.images_path[id]
-                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.tif'.format(id)))
-                if 'unlabeled_zones_{}.tif'.format(id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}_{}.tif'.format(attribute, id)))
+                if 'unlabeled_zones_{}_{}.tif'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
                     continue
                 else:
-                    path = os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.bsq'.format(id))
-                    if 'unlabeled_zones_{}.bsq'.format(id) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                    path = os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}_{}.bsq'.format(attribute, id))
+                    if 'unlabeled_zones_{}_{}.bsq'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
                         pass
                     else:
                         img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
@@ -502,6 +502,7 @@ class TlseHypDataSet(Dataset):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
             groups = groups.ReadAsArray(gdal.GA_ReadOnly)
             coords = np.where(gt != 0)
+            import pdb; pdb.set_trace()
             groups = groups[coords]
             img_list.extend([img_id] * len(coords[0]))
             group_list.extend(groups)
@@ -532,10 +533,10 @@ class TlseHypDataSet(Dataset):
 
     def save_data_set(self):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
-        data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images))
-        labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images))
-        if 'data_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
-                'labels_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images) in os.listdir(os.path.join(self.root_path, 'inputs')):
+        data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled))
+        labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled))
+        if 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
+                'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled) in os.listdir(os.path.join(self.root_path, 'inputs')):
             self.saved_h5py = True
             print("Data already saved in .h5py files.")
         else:
@@ -546,17 +547,25 @@ class TlseHypDataSet(Dataset):
                 batch_size = 1024
             else:
                 batch_size = 16
+            if self.unlabeled:
+                sample = self.__getitem__(0)
+            else:
+                sample, gt = self.__getitem__(0)
+                labels = labels_file.create_dataset("data", tuple((len(self),)) + gt.shape, dtype='int8')
 
-            sample, gt = self.__getitem__(0)
             data = data_file.create_dataset("data", tuple((len(self),)) + sample.shape, dtype='float32')
-            labels = labels_file.create_dataset("data", tuple((len(self),)) + gt.shape, dtype='int8')
 
             loader = torch.utils.data.DataLoader(self, shuffle=False, batch_size=batch_size)
             i = 0
-            for sample, gt in loader:
+            for batch in loader:
+                if self.unlabeled:
+                    sample = batch
+                else:
+                    sample, gt = batch
                 b = sample.shape[0]
                 data[i: i + b] = sample
-                labels[i: i + b] = gt
+                if self.unlabeled is False:
+                    labels[i: i + b] = gt
                 i += b
             self.saved_h5py = True
 

@@ -23,6 +23,12 @@ TlseHypDataSet/default_splits/split_8.pkl
 TlseHypDataSet/dimension_reduction/__init__.py
 TlseHypDataSet/dimension_reduction/autoencoders.py
 TlseHypDataSet/dimension_reduction/pretrained_params.pt
+TlseHypDataSet/ground_truth/__init__.py
+TlseHypDataSet/ground_truth/unlabeled_zones.cpg
+TlseHypDataSet/ground_truth/unlabeled_zones.dbf
+TlseHypDataSet/ground_truth/unlabeled_zones.prj
+TlseHypDataSet/ground_truth/unlabeled_zones.shp
+TlseHypDataSet/ground_truth/unlabeled_zones.shx
 TlseHypDataSet/metadata/tlse_metadata.txt
 TlseHypDataSet/utils/__init__.py
 TlseHypDataSet/utils/coreset.py
