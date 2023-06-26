@@ -335,8 +335,8 @@ class TlseHypDataSet(Dataset):
                     yield gt.loc[indices[i], 'geometry'], 0
                 else:
                     yield gt.loc[indices[i], 'geometry'], int(gt.loc[indices[i], attribute])
-
-        for attribute in ['Image']:
+        import pdb; pdb.set_trace()
+        for attribute in ['Image', 'Group']:
             paths[attribute] = []
             dtype = 'uint8'
             rasterio_dtype = rasterio.uint8
@@ -344,12 +344,12 @@ class TlseHypDataSet(Dataset):
             for img_id, id in enumerate(gt_per_image.groups):
                 id = int(id)
                 img_path = self.images_path[img_id]
-                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.tif'.format(id-1)))
-                if 'unlabeled_zones_{}.tif'.format(id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}_{}.tif'.format(attribute, id-1)))
+                if 'unlabeled_zones_{}_{}.tif'.format(attribute, id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
                     continue
                 else:
-                    path = os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.bsq'.format(id-1))
-                    if 'unlabeled_zones_{}.bsq'.format(id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                    path = os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}_{}.bsq'.format(attribute, id-1))
+                    if 'unlabeled_zones_{}_{}.bsq'.format(attribute, id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
                         pass
                     else:
                         img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
@@ -498,11 +498,14 @@ class TlseHypDataSet(Dataset):
 
     def compute_unlabeled_pixels(self):
         group_list, col_list, row_list, img_list = [], [], [], []
-        for img_id, gt in self.unlabeled_rasters['Image']:
+        for (img_id, gt), (_, groups) in zip(self.unlabeled_rasters['Image'], self.unlabeled_rasters['Group']):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
+            groups = groups.ReadAsArray(gdal.GA_ReadOnly)
             coords = np.where(gt != 0)
+            import pdb; pdb.set_trace()
+            groups = groups[coords]
             img_list.extend([img_id] * len(coords[0]))
-            group_list.extend([0] * len(coords[0]))
+            group_list.extend(groups)
             col_offset = coords[1] - self.patch_size // 2
             row_offset = coords[0] - self.patch_size // 2
             col_list.extend(col_offset)
@@ -516,10 +519,17 @@ class TlseHypDataSet(Dataset):
         self.samples[:, 4] = self.patch_size
         self.samples[:, 5] = self.patch_size
 
+        self.train_unlabeled_indices = np.where(np.array(group_list) == 1)[0]
+        self.val_unlabeled_indices = np.where(np.array(group_list) == 2)[0]
+
         if self.subset < 1:
             n_samples = int(self.subset * self.samples.shape[0])
             subset = np.random.choice(np.arange(self.samples.shape[0]), size=n_samples, replace=False)
             self.samples = self.samples[subset]
+
+    def unlabeled_sampler(self):
+        return SubsetSampler(self.train_unlabeled_indices), SubsetSampler(self.val_unlabeled_indices)
+
 
     def save_data_set(self):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
@@ -611,7 +621,18 @@ class TlseHypDataSet(Dataset):
 
 
 class Split:
-    def __init__(self, split):
+    def __init__(self, path):
         with open(path, 'rb') as f:
             self.sets = pkl.load(f)
+
+
+class SubsetSampler(torch.utils.data.Sampler):
+    def __init__(self, indices):
+        self.indices = indices
+
+    def __iter__(self):
+        return (i for i in self.indices)
+
+    def __len__(self):
+        return len(self.indices)
 

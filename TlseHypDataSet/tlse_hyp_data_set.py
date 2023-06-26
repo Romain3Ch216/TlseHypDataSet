@@ -335,8 +335,8 @@ class TlseHypDataSet(Dataset):
                     yield gt.loc[indices[i], 'geometry'], 0
                 else:
                     yield gt.loc[indices[i], 'geometry'], int(gt.loc[indices[i], attribute])
-
-        for attribute in ['Image']:
+        import pdb; pdb.set_trace()
+        for attribute in ['Image', 'Group']:
             paths[attribute] = []
             dtype = 'uint8'
             rasterio_dtype = rasterio.uint8
@@ -344,12 +344,12 @@ class TlseHypDataSet(Dataset):
             for img_id, id in enumerate(gt_per_image.groups):
                 id = int(id)
                 img_path = self.images_path[img_id]
-                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.tif'.format(id-1)))
-                if 'unlabeled_zones_{}.tif'.format(id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}_{}.tif'.format(attribute, id-1)))
+                if 'unlabeled_zones_{}_{}.tif'.format(attribute, id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
                     continue
                 else:
-                    path = os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}.bsq'.format(id-1))
-                    if 'unlabeled_zones_{}.bsq'.format(id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                    path = os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}_{}.bsq'.format(attribute, id-1))
+                    if 'unlabeled_zones_{}_{}.bsq'.format(attribute, id-1) in os.listdir(os.path.join(self.root_path, 'rasters')):
                         pass
                     else:
                         img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
@@ -502,6 +502,7 @@ class TlseHypDataSet(Dataset):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
             groups = groups.ReadAsArray(gdal.GA_ReadOnly)
             coords = np.where(gt != 0)
+            import pdb; pdb.set_trace()
             groups = groups[coords]
             img_list.extend([img_id] * len(coords[0]))
             group_list.extend(groups)
