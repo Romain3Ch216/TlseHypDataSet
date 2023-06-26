@@ -498,17 +498,18 @@ class TlseHypDataSet(Dataset):
 
     def compute_unlabeled_pixels(self):
         group_list, col_list, row_list, img_list = [], [], [], []
-        for img_id, gt in self.unlabeled_rasters['Image']:
+        for (img_id, gt), (_, groups) in zip(self.unlabeled_rasters['Image'], self.unlabeled_rasters['Group']):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
+            groups = groups.ReadAsArray(gdal.GA_ReadOnly)
             coords = np.where(gt != 0)
+            groups = groups[coords]
             img_list.extend([img_id] * len(coords[0]))
-            group_list.extend([0] * len(coords[0]))
+            group_list.extend(groups)
             col_offset = coords[1] - self.patch_size // 2
             row_offset = coords[0] - self.patch_size // 2
             col_list.extend(col_offset)
             row_list.extend(row_offset)
 
-        pdb.set_trace()
         self.samples = np.zeros((len(group_list), 6), dtype=int)
         self.samples[:, 0] = img_list
         self.samples[:, 1] = group_list
@@ -517,10 +518,17 @@ class TlseHypDataSet(Dataset):
         self.samples[:, 4] = self.patch_size
         self.samples[:, 5] = self.patch_size
 
+        self.train_unlabeled_indices = np.where(np.array(group_list) == 1)[0]
+        self.val_unlabeled_indices = np.where(np.array(group_list) == 2)[0]
+
         if self.subset < 1:
             n_samples = int(self.subset * self.samples.shape[0])
             subset = np.random.choice(np.arange(self.samples.shape[0]), size=n_samples, replace=False)
             self.samples = self.samples[subset]
+
+    def unlabeled_sampler(self):
+        return SubsetSampler(self.train_unlabeled_indices), SubsetSampler(self.val_unlabeled_indices)
+
 
     def save_data_set(self):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
@@ -604,7 +612,18 @@ class TlseHypDataSet(Dataset):
 
 
 class Split:
-    def __init__(self, split):
+    def __init__(self, path):
         with open(path, 'rb') as f:
             self.sets = pkl.load(f)
+
+
+class SubsetSampler(torch.utils.data.Sampler):
+    def __init__(self, indices):
+        self.indices = indices
+
+    def __iter__(self):
+        return (i for i in self.indices)
+
+    def __len__(self):
+        return len(self.indices)
 
