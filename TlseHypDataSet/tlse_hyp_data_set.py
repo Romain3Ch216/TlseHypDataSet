@@ -502,7 +502,6 @@ class TlseHypDataSet(Dataset):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
             groups = groups.ReadAsArray(gdal.GA_ReadOnly)
             coords = np.where(gt != 0)
-            import pdb; pdb.set_trace()
             groups = groups[coords]
             img_list.extend([img_id] * len(coords[0]))
             group_list.extend(groups)
