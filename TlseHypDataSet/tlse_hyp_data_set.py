@@ -577,7 +577,10 @@ class TlseHypDataSet(Dataset):
     def __getitem__(self, i):
         if self.h5py and self.saved_h5py:
             sample = self.h5py_data[i]
-            gt = self.h5py_labels[i]
+            if self.unlabeled:
+                return sample
+            else:
+                gt = self.h5py_labels[i]
         else:
             image_id = self.samples[i, 0]
 
