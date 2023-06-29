@@ -595,6 +595,11 @@ class TlseHypDataSet(Dataset):
             sample = np.asarray(np.copy(sample), dtype="float32")
             sample = torch.from_numpy(sample)
 
+            pdb.set_trace()
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            plt.plot(sample.view(-1))
+            plt.show()
             if self.unlabeled:
                 return sample
 
