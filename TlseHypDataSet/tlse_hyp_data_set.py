@@ -539,7 +539,10 @@ class TlseHypDataSet(Dataset):
         else:
             self.saved_h5py = False
             data_file = h5py.File(data_file_path, "w")
-            labels_file = h5py.File(labels_file_path, "w")
+            if self.unlabeled:
+                labels_file_path = None
+            else:
+                labels_file = h5py.File(labels_file_path, "w")
             if self.pred_mode == 'pixel':
                 batch_size = 1024
             elif self.unalebeled:
@@ -575,7 +578,6 @@ class TlseHypDataSet(Dataset):
         return len(self.samples)
 
     def __getitem__(self, i):
-        import pdb; pdb.set_trace()
         if self.h5py and self.saved_h5py:
             sample = self.h5py_data[i]
             if self.unlabeled:
@@ -596,11 +598,6 @@ class TlseHypDataSet(Dataset):
             sample = np.asarray(np.copy(sample), dtype="float32")
             sample = torch.from_numpy(sample)
 
-            pdb.set_trace()
-            import matplotlib.pyplot as plt
-            fig = plt.figure()
-            plt.plot(sample.view(-1))
-            plt.show()
             if self.unlabeled:
                 return sample
 
