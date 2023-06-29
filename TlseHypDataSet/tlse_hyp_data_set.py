@@ -575,7 +575,6 @@ class TlseHypDataSet(Dataset):
         return len(self.samples)
 
     def __getitem__(self, i):
-        import pdb; pdb.set_trace()
         if self.h5py and self.saved_h5py:
             sample = self.h5py_data[i]
             if self.unlabeled:
