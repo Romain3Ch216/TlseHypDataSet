@@ -533,7 +533,7 @@ class TlseHypDataSet(Dataset):
         data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled))
         labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled))
         if 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
-                'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled) in os.listdir(os.path.join(self.root_path, 'inputs')):
+                (self.unlabeled or 'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled) in os.listdir(os.path.join(self.root_path, 'inputs'))):
             self.saved_h5py = True
             print("Data already saved in .h5py files.")
         else:
@@ -575,6 +575,7 @@ class TlseHypDataSet(Dataset):
         return len(self.samples)
 
     def __getitem__(self, i):
+        import pdb; pdb.set_trace()
         if self.h5py and self.saved_h5py:
             sample = self.h5py_data[i]
             if self.unlabeled:
