@@ -17,6 +17,7 @@ import csv
 import seaborn as sns
 import h5py
 import pkg_resources
+import matplotlib.pyplot as plt
 
 
 __all__ = [
@@ -451,12 +452,28 @@ class TlseHypDataSet(Dataset):
                     n_x_patches = int(np.ceil(width / self.patch_size))
                     n_y_patches = int(np.ceil(height / self.patch_size))
 
-                    for i in range(n_x_patches):
+                    # if n_x_patches > 1 or n_y_patches > 1:
+                    #     gt = self.gt_rasters['Material'][img_id-1][1].ReadAsArray(left_col, top_row, width, height)
+                    #     fig = plt.figure()
+                    #     plt.imshow(gt)
+                    #     plt.colorbar()
+                    #     plt.show()
+                    for k in range(n_x_patches):
                         for j in range(n_y_patches):
-                            patches.append(
-                                tuple((left_col + i * self.patch_size, top_row + j * self.patch_size, self.patch_size,
-                                       self.patch_size))
-                            )
+                            left = left_col + k * self.patch_size
+                            top = top_row + j * self.patch_size
+                            if self.low_level_only:
+                                gt = self.gt_rasters['Material'][i][1].ReadAsArray(
+                                    left, top, self.patch_size, self.patch_size)
+                                if gt.sum() >= 10:
+                                    add_patch = True
+                                else:
+                                    add_patch = False
+                            else:
+                                add_patch = True
+
+                            if add_patch:
+                                patches.append(tuple((left, top, self.patch_size, self.patch_size)))
 
                     groups.extend([polygon['Group']] * len(patches))
                     images.extend([i] * len(patches))
@@ -539,7 +556,10 @@ class TlseHypDataSet(Dataset):
         else:
             self.saved_h5py = False
             data_file = h5py.File(data_file_path, "w")
-            labels_file = h5py.File(labels_file_path, "w")
+            if self.unlabeled:
+                labels_file_path = None
+            else:
+                labels_file = h5py.File(labels_file_path, "w")
             if self.pred_mode == 'pixel':
                 batch_size = 1024
             elif self.unalebeled:
