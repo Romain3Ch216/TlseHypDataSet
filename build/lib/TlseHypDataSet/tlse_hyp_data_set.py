@@ -458,6 +458,7 @@ class TlseHypDataSet(Dataset):
                     #     plt.imshow(gt)
                     #     plt.colorbar()
                     #     plt.show()
+                    """
                     for k in range(n_x_patches):
                         for j in range(n_y_patches):
                             left = left_col + k * self.patch_size
@@ -474,7 +475,8 @@ class TlseHypDataSet(Dataset):
 
                             if add_patch:
                                 patches.append(tuple((left, top, self.patch_size, self.patch_size)))
-
+                    """
+                    patches.append(tuple((left_col, top_row, width, height)))
                     groups.extend([polygon['Group']] * len(patches))
                     images.extend([i] * len(patches))
                     patch_coordinates.extend(patches)
