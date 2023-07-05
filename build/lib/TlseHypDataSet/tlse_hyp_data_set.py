@@ -416,76 +416,113 @@ class TlseHypDataSet(Dataset):
             raise ValueError('Data has not been projected yet.')
 
     def compute_patches(self):
-        polygons_by_image = self.ground_truth.groupby(by='Image')
-        groups, images, patch_coordinates = [], [], []
-        list_images = [img_id + 1 for img_id in self.images]
-        for i, img_id in enumerate(list_images):
-            image_path = os.path.join(self.root_path, 'images', self.images_path[img_id-1]) + '.tif'
-            raster = gdal.Open(image_path, gdal.GA_ReadOnly)
-            transform = raster.GetGeoTransform()
-            xOrigin = transform[0]
-            yOrigin = transform[3]
-            pixelWidth = transform[1]
-            pixelHeight = -transform[5]
-            # Xgeo = xOrigin + Xpixel*pixelWidth
-            # Xpixel = (Xgeo - xOrigin) / pixelWidth
-            # Ygeo = yOrigin - Yline * pixelHeight
-            # Yline = (yOrigin - Ygeo) / pixelHeight
-            image_bounds = (xOrigin,
-                            yOrigin,
-                            xOrigin + raster.RasterXSize * pixelWidth,
-                            yOrigin - raster.RasterYSize * pixelHeight)
-            polygons = polygons_by_image.get_group(img_id)
-            for id, polygon in polygons.iterrows():
-                if (self.low_level_only is False) or (polygon['Material'] != 0):
-                    patches = []
-                    bounds = polygon['geometry'].bounds  # min x, min y, max x, max y
-                    assert is_polygon_in_rectangle(bounds, image_bounds), "Polygon is not in image"
+        group_list, patches, img_list = [], [], []
+        for i, ((img_id, gt), (_, groups)) in enumerate(zip(self.gt_rasters['Material'], self.gt_rasters['Group'])):
+            gt = gt.ReadAsArray(gdal.GA_ReadOnly)
+            groups = groups.ReadAsArray(gdal.GA_ReadOnly)
+            nx_patches = gt.shape[0] // self.patch_size
+            ny_patches = gt.shape[1] // self.patch_size
+            for k in range(nx_patches):
+                for l in range(ny_patches):
+                    top = k * self.patch_size
+                    left = l * self.patch_size
+                    labels = gt[top: min(gt.shape[0], top + self.patch_size),
+                             left: min(gt.shape[1], left + self.patch_size)]
+                    group = groups[top: min(gt.shape[0], top + self.patch_size),
+                             left: min(gt.shape[1], left + self.patch_size)]
+                    if labels.sum() > 10:
+                        list_groups = np.unique(group[group != 0])
+                        n_px_groups = [(group == group_id).sum() for group_id in list_groups]
+                        group = list_groups[np.argmax(n_px_groups)]
+                        patches.append(tuple((left, top, self.patch_size, self.patch_size)))
+                        img_list.append(i)
+                        group_list.append(group)
 
-                    left_col = int((bounds[0] - xOrigin) / pixelWidth) - self.padding // 2
-                    right_col = int((bounds[2] - xOrigin) / pixelWidth) + self.padding // 2
-                    top_row = int((yOrigin - bounds[3]) / pixelHeight) - self.padding // 2
-                    bottom_row = int((yOrigin - bounds[1]) / pixelHeight) + self.padding // 2
+        self.samples = np.zeros((len(group_list), 6), dtype=int)
+        self.samples[:, 0] = img_list
+        self.samples[:, 1] = group_list
+        self.samples[:, 2:] = np.array(patches)
 
-                    width = right_col - left_col
-                    height = bottom_row - top_row
-                    n_x_patches = int(np.ceil(width / self.patch_size))
-                    n_y_patches = int(np.ceil(height / self.patch_size))
-
-                    # if n_x_patches > 1 or n_y_patches > 1:
-                    #     gt = self.gt_rasters['Material'][img_id-1][1].ReadAsArray(left_col, top_row, width, height)
-                    #     fig = plt.figure()
-                    #     plt.imshow(gt)
-                    #     plt.colorbar()
-                    #     plt.show()
-                    """
-                    for k in range(n_x_patches):
-                        for j in range(n_y_patches):
-                            left = left_col + k * self.patch_size
-                            top = top_row + j * self.patch_size
-                            if self.low_level_only:
-                                gt = self.gt_rasters['Material'][i][1].ReadAsArray(
-                                    left, top, self.patch_size, self.patch_size)
-                                if gt.sum() >= 10:
-                                    add_patch = True
-                                else:
-                                    add_patch = False
-                            else:
-                                add_patch = True
-
-                            if add_patch:
-                                patches.append(tuple((left, top, self.patch_size, self.patch_size)))
-                    """
-                    patches.append(tuple((left_col, top_row, width, height)))
-                    groups.extend([polygon['Group']] * len(patches))
-                    images.extend([i] * len(patches))
-                    patch_coordinates.extend(patches)
-
-
-        self.samples = np.zeros((len(groups), 6), dtype=int)
-        self.samples[:, 0] = images
-        self.samples[:, 1] = groups
-        self.samples[:, 2:] = patch_coordinates
+        #     coords = np.where(gt != 0)
+        #     groups = groups[coords]
+        #     groups.extend([polygon['Group']] * len(patches))
+        #             images.extend([i] * len(patches))
+        #             patch_coordinates.extend(patches)
+        #
+        #
+        # self.samples = np.zeros((len(groups), 6), dtype=int)
+        # self.samples[:, 0] = images
+        # self.samples[:, 1] = groups
+        # self.samples[:, 2:] = patch_coordinates
+        #
+        # polygons_by_image = self.ground_truth.groupby(by='Image')
+        # groups, images, patch_coordinates = [], [], []
+        # list_images = [img_id + 1 for img_id in self.images]
+        # for i, img_id in enumerate(list_images):
+        #     image_path = os.path.join(self.root_path, 'images', self.images_path[img_id-1]) + '.tif'
+        #     raster = gdal.Open(image_path, gdal.GA_ReadOnly)
+        #     transform = raster.GetGeoTransform()
+        #     xOrigin = transform[0]
+        #     yOrigin = transform[3]
+        #     pixelWidth = transform[1]
+        #     pixelHeight = -transform[5]
+        #     # Xgeo = xOrigin + Xpixel*pixelWidth
+        #     # Xpixel = (Xgeo - xOrigin) / pixelWidth
+        #     # Ygeo = yOrigin - Yline * pixelHeight
+        #     # Yline = (yOrigin - Ygeo) / pixelHeight
+        #     image_bounds = (xOrigin,
+        #                     yOrigin,
+        #                     xOrigin + raster.RasterXSize * pixelWidth,
+        #                     yOrigin - raster.RasterYSize * pixelHeight)
+        #     polygons = polygons_by_image.get_group(img_id)
+        #     for id, polygon in polygons.iterrows():
+        #         if (self.low_level_only is False) or (polygon['Material'] != 0):
+        #             patches = []
+        #             bounds = polygon['geometry'].bounds  # min x, min y, max x, max y
+        #             assert is_polygon_in_rectangle(bounds, image_bounds), "Polygon is not in image"
+        #
+        #             left_col = int((bounds[0] - xOrigin) / pixelWidth) - self.padding // 2
+        #             right_col = int((bounds[2] - xOrigin) / pixelWidth) + self.padding // 2
+        #             top_row = int((yOrigin - bounds[3]) / pixelHeight) - self.padding // 2
+        #             bottom_row = int((yOrigin - bounds[1]) / pixelHeight) + self.padding // 2
+        #
+        #             width = right_col - left_col
+        #             height = bottom_row - top_row
+        #             n_x_patches = int(np.ceil(width / self.patch_size))
+        #             n_y_patches = int(np.ceil(height / self.patch_size))
+        #
+        #             # if n_x_patches > 1 or n_y_patches > 1:
+        #             #     gt = self.gt_rasters['Material'][img_id-1][1].ReadAsArray(left_col, top_row, width, height)
+        #             #     fig = plt.figure()
+        #             #     plt.imshow(gt)
+        #             #     plt.colorbar()
+        #             #     plt.show()
+        #             for k in range(n_x_patches):
+        #                 for j in range(n_y_patches):
+        #                     left = left_col + k * self.patch_size
+        #                     top = top_row + j * self.patch_size
+        #                     if self.low_level_only:
+        #                         gt = self.gt_rasters['Material'][i][1].ReadAsArray(
+        #                             left, top, self.patch_size, self.patch_size)
+        #                         if gt.sum() >= 10:
+        #                             add_patch = True
+        #                         else:
+        #                             add_patch = False
+        #                     else:
+        #                         add_patch = True
+        #
+        #                     if add_patch:
+        #                         patches.append(tuple((left, top, self.patch_size, self.patch_size)))
+        #
+        #             groups.extend([polygon['Group']] * len(patches))
+        #             images.extend([i] * len(patches))
+        #             patch_coordinates.extend(patches)
+        #
+        #
+        # self.samples = np.zeros((len(groups), 6), dtype=int)
+        # self.samples[:, 0] = images
+        # self.samples[:, 1] = groups
+        # self.samples[:, 2:] = patch_coordinates
 
     def compute_pixels(self):
         group_list, col_list, row_list, img_list = [], [], [], []
