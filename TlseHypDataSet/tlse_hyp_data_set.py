@@ -39,7 +39,8 @@ class TlseHypDataSet(Dataset):
                  subset: float = 1,
                  in_h5py: bool = False,
                  data_on_gpu: bool = False,
-                 unlabeled: bool = False):
+                 unlabeled: bool = False,
+                 urban_atlas: bool = False):
 
         self.name = 'Toulouse'
         self.root_path = root_path
@@ -54,6 +55,7 @@ class TlseHypDataSet(Dataset):
         self.saved_h5py = in_h5py
         self.data_on_gpu = data_on_gpu
         self.unlabeled = unlabeled
+        self.urban_atlas = urban_atlas
 
         make_dirs([os.path.join(self.root_path, 'inputs')])
         make_dirs([os.path.join(self.root_path, 'outputs')])
@@ -109,6 +111,11 @@ class TlseHypDataSet(Dataset):
         print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()
         self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
+
+        if self.urban_atlas:
+            self.urban_atlas = gpd.read_file(os.path.join(self.root_path, 'urban_atlas', 'FR004L2_TOULOUSE_UA2018_v013.gpkg'))
+            pdb.set_trace()
+            self.urban_atlas_path = self.rasterize_urban_atlas()
 
         print('Open ground truth rasters...')
         if unlabeled:
@@ -236,6 +243,35 @@ class TlseHypDataSet(Dataset):
             33: 'Wheat',
             34: 'Field bean',
             35: 'Clear plastic cover'
+        }
+        return labels_
+
+    @property
+    def urban_atlas_labels(self):
+        labels_ = {
+            'Airports': 1,
+            'Arable land (annual crops)': 2,
+            'Construction sites': 3,
+            'Continuous urban fabric (S.L. : > 80%)': 4,
+            'Discontinuous dense urban fabric (S.L. : 50% -  80%)': 5,
+            'Discontinuous low density urban fabric (S.L. : 10% - 30%)': 6,
+            'Discontinuous medium density urban fabric (S.L. : 30% - 50%)': 7,
+            'Discontinuous very low density urban fabric (S.L. : < 10%)': 8,
+            'Fast transit roads and associated land': 9,
+            'Forests': 10,
+            'Green urban areas': 11,
+            'Herbaceous vegetation associations (natural grassland, moors...)': 12,
+            'Industrial, commercial, public, military and private units': 13,
+            'Isolated structures': 14,
+            'Land without current use': 15,
+            'Mineral extraction and dump sites': 16,
+            'Open spaces with little or no vegetation (beaches, dunes, bare rocks, glaciers)': 17,
+            'Other roads and associated land': 18,
+            'Pastures': 19,
+            'Permanent crops (vineyards, fruit trees, olive groves)': 20,
+            'Railways and associated land': 21,
+            'Sports and leisure facilities': 22,
+            'Water': 23
         }
         return labels_
 
@@ -378,6 +414,57 @@ class TlseHypDataSet(Dataset):
                     tile_raster(path)
         return paths
 
+    def rasterize_urban_atlas(self):
+        """
+        Rasterize the ground truth shapefile.
+        """
+        gt = self.urban_atlas
+        make_dirs([os.path.join(self.root_path, 'rasters')])
+        paths = {}
+
+        def shapes(gt: GeoDataFrame, attribute: str):
+            indices = gt.index
+            for i in range(len(gt)):
+                if np.isnan(gt.loc[indices[i], attribute]):
+                    yield gt.loc[indices[i], 'geometry'], 0
+                else:
+                    yield gt.loc[indices[i], 'geometry'], int(gt.loc[indices[i], attribute])
+
+        for attribute in ['class_2018']:
+            paths[attribute] = []
+            dtype = 'uint8'
+            rasterio_dtype = rasterio.uint8
+            gt_per_image = gt.groupby(by='Image')
+            for id in gt_per_image.groups:
+                id = int(id-1)
+                img_path = self.images_path[id]
+                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'urban_atlas_{}.tif'.format(id)))
+                if 'urban_atlas_{}.tif'.format(id) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                    continue
+                else:
+                    path = os.path.join(self.root_path, 'rasters', 'urban_atlas_{}.bsq'.format(id))
+                    if 'urban_atlas_{}.bsq'.format(id) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                        pass
+                    else:
+                        img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
+                        shape = img.shape
+                        data = rasterize(shapes(gt_per_image.get_group(id+1), attribute),
+                                         shape[:2],
+                                         dtype=dtype,
+                                         transform=img.transform)
+                        data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
+
+                        with rasterio.Env():
+                            profile = img.profile
+                            profile.update(
+                                dtype=rasterio_dtype,
+                                count=1,
+                                compress='lzw')
+                            with rasterio.open(path, 'w', **profile) as dst:
+                                dst.write(data)
+                    tile_raster(path)
+        return paths
+
     def split_already_computed(self, p_labeled, p_val, p_test, timestamp):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
         file = 'ground_truth_split_{}_{}_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(timestamp, images, p_labeled, p_val, p_test)
@@ -447,87 +534,6 @@ class TlseHypDataSet(Dataset):
         self.samples[:, 0] = img_list
         self.samples[:, 1] = group_list
         self.samples[:, 2:] = np.array(patches)
-
-        #     coords = np.where(gt != 0)
-        #     groups = groups[coords]
-        #     groups.extend([polygon['Group']] * len(patches))
-        #             images.extend([i] * len(patches))
-        #             patch_coordinates.extend(patches)
-        #
-        #
-        # self.samples = np.zeros((len(groups), 6), dtype=int)
-        # self.samples[:, 0] = images
-        # self.samples[:, 1] = groups
-        # self.samples[:, 2:] = patch_coordinates
-        #
-        # polygons_by_image = self.ground_truth.groupby(by='Image')
-        # groups, images, patch_coordinates = [], [], []
-        # list_images = [img_id + 1 for img_id in self.images]
-        # for i, img_id in enumerate(list_images):
-        #     image_path = os.path.join(self.root_path, 'images', self.images_path[img_id-1]) + '.tif'
-        #     raster = gdal.Open(image_path, gdal.GA_ReadOnly)
-        #     transform = raster.GetGeoTransform()
-        #     xOrigin = transform[0]
-        #     yOrigin = transform[3]
-        #     pixelWidth = transform[1]
-        #     pixelHeight = -transform[5]
-        #     # Xgeo = xOrigin + Xpixel*pixelWidth
-        #     # Xpixel = (Xgeo - xOrigin) / pixelWidth
-        #     # Ygeo = yOrigin - Yline * pixelHeight
-        #     # Yline = (yOrigin - Ygeo) / pixelHeight
-        #     image_bounds = (xOrigin,
-        #                     yOrigin,
-        #                     xOrigin + raster.RasterXSize * pixelWidth,
-        #                     yOrigin - raster.RasterYSize * pixelHeight)
-        #     polygons = polygons_by_image.get_group(img_id)
-        #     for id, polygon in polygons.iterrows():
-        #         if (self.low_level_only is False) or (polygon['Material'] != 0):
-        #             patches = []
-        #             bounds = polygon['geometry'].bounds  # min x, min y, max x, max y
-        #             assert is_polygon_in_rectangle(bounds, image_bounds), "Polygon is not in image"
-        #
-        #             left_col = int((bounds[0] - xOrigin) / pixelWidth) - self.padding // 2
-        #             right_col = int((bounds[2] - xOrigin) / pixelWidth) + self.padding // 2
-        #             top_row = int((yOrigin - bounds[3]) / pixelHeight) - self.padding // 2
-        #             bottom_row = int((yOrigin - bounds[1]) / pixelHeight) + self.padding // 2
-        #
-        #             width = right_col - left_col
-        #             height = bottom_row - top_row
-        #             n_x_patches = int(np.ceil(width / self.patch_size))
-        #             n_y_patches = int(np.ceil(height / self.patch_size))
-        #
-        #             # if n_x_patches > 1 or n_y_patches > 1:
-        #             #     gt = self.gt_rasters['Material'][img_id-1][1].ReadAsArray(left_col, top_row, width, height)
-        #             #     fig = plt.figure()
-        #             #     plt.imshow(gt)
-        #             #     plt.colorbar()
-        #             #     plt.show()
-        #             for k in range(n_x_patches):
-        #                 for j in range(n_y_patches):
-        #                     left = left_col + k * self.patch_size
-        #                     top = top_row + j * self.patch_size
-        #                     if self.low_level_only:
-        #                         gt = self.gt_rasters['Material'][i][1].ReadAsArray(
-        #                             left, top, self.patch_size, self.patch_size)
-        #                         if gt.sum() >= 10:
-        #                             add_patch = True
-        #                         else:
-        #                             add_patch = False
-        #                     else:
-        #                         add_patch = True
-        #
-        #                     if add_patch:
-        #                         patches.append(tuple((left, top, self.patch_size, self.patch_size)))
-        #
-        #             groups.extend([polygon['Group']] * len(patches))
-        #             images.extend([i] * len(patches))
-        #             patch_coordinates.extend(patches)
-        #
-        #
-        # self.samples = np.zeros((len(groups), 6), dtype=int)
-        # self.samples[:, 0] = images
-        # self.samples[:, 1] = groups
-        # self.samples[:, 2:] = patch_coordinates
 
     def compute_pixels(self):
         group_list, col_list, row_list, img_list = [], [], [], []
