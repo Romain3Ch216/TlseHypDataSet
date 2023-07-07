@@ -113,8 +113,7 @@ class TlseHypDataSet(Dataset):
         self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
 
         if self.urban_atlas:
-            self.urban_atlas = gpd.read_file(os.path.join(self.root_path, 'urban_atlas', 'FR004L2_TOULOUSE_UA2018_v013.gpkg'))
-            pdb.set_trace()
+            self.urban_atlas = gpd.read_file(os.path.join(self.root_path, 'urban_atlas', 'urban_atlas_1.shp'))
             self.urban_atlas_path = self.rasterize_urban_atlas()
 
         print('Open ground truth rasters...')
@@ -122,6 +121,10 @@ class TlseHypDataSet(Dataset):
             self.unlabeled_rasters = dict(
                 (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.unlabeled_zones_path[att])])
                 for att in self.unlabeled_zones_path)
+        elif self.urban_atlas is not False:
+            self.urban_atlas_rasters = {
+                'class_2018': [(self.images[i], gdal.Open(path[:-3] + 'tif', gdal.GA_ReadOnly) for i, path in enumerate(self.urban_atlas_path['class_2018']))
+            }
         else:
             self.gt_rasters = dict(
                 (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.gts_path[att])])
@@ -273,6 +276,7 @@ class TlseHypDataSet(Dataset):
             'Sports and leisure facilities': 22,
             'Water': 23
         }
+        # labels_ = dict((k, np.int8(v)) for k, v in labels_.items())
         return labels_
 
     @property
@@ -419,6 +423,7 @@ class TlseHypDataSet(Dataset):
         Rasterize the ground truth shapefile.
         """
         gt = self.urban_atlas
+        gt['class_2018'] = self.urban_atlas['class_2018'].replace(self.urban_atlas_labels)
         make_dirs([os.path.join(self.root_path, 'rasters')])
         paths = {}
 
@@ -428,7 +433,7 @@ class TlseHypDataSet(Dataset):
                 if np.isnan(gt.loc[indices[i], attribute]):
                     yield gt.loc[indices[i], 'geometry'], 0
                 else:
-                    yield gt.loc[indices[i], 'geometry'], int(gt.loc[indices[i], attribute])
+                    yield gt.loc[indices[i], 'geometry'], np.int8(gt.loc[indices[i], attribute])
 
         for attribute in ['class_2018']:
             paths[attribute] = []
@@ -448,8 +453,7 @@ class TlseHypDataSet(Dataset):
                     else:
                         img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
                         shape = img.shape
-                        data = rasterize(shapes(gt_per_image.get_group(id+1), attribute),
-                                         shape[:2],
+                        data = rasterize(shapes(gt_per_image.get_group(id+1), attribute), shape[:2],
                                          dtype=dtype,
                                          transform=img.transform)
                         data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
@@ -595,6 +599,34 @@ class TlseHypDataSet(Dataset):
     def unlabeled_sampler(self):
         return SubsetSampler(self.train_unlabeled_indices), SubsetSampler(self.val_unlabeled_indices)
 
+    def compute_urban_atlas_patches(self):
+        group_list, patches, img_list = [], [], []
+        for i, (img_id, gt) in enumerate(self.urban_atlas_rasters['Material']):
+            gt = gt.ReadAsArray(gdal.GA_ReadOnly)
+            # groups = groups.ReadAsArray(gdal.GA_ReadOnly)
+            nx_patches = gt.shape[0] // self.patch_size
+            ny_patches = gt.shape[1] // self.patch_size
+            for k in range(nx_patches):
+                for l in range(ny_patches):
+                    top = k * self.patch_size
+                    left = l * self.patch_size
+                    labels = gt[top: min(gt.shape[0], top + self.patch_size),
+                             left: min(gt.shape[1], left + self.patch_size)]
+                    # group = groups[top: min(gt.shape[0], top + self.patch_size),
+                    #          left: min(gt.shape[1], left + self.patch_size)]
+                    if labels.sum() > 10:
+                        # list_groups = np.unique(group[group != 0])
+                        # n_px_groups = [(group == group_id).sum() for group_id in list_groups]
+                        # group = list_groups[np.argmax(n_px_groups)]
+                        patches.append(tuple((left, top, self.patch_size, self.patch_size)))
+                        img_list.append(i)
+                        # group_list.append(group)
+
+        self.samples = np.zeros((len(group_list), 6), dtype=int)
+        self.samples[:, 0] = img_list
+        # self.samples[:, 1] = group_list
+        self.samples[:, 2:] = np.array(patches)
+
     def save_data_set(self):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
         data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled))
@@ -668,13 +700,17 @@ class TlseHypDataSet(Dataset):
             if self.unlabeled:
                 return sample
 
-            gt = [self.gt_rasters[att][image_id][1].ReadAsArray(col_offset, row_offset, col_size, row_size)
-                  for att in ['Material', 'Class_2', 'Class_1']]
-            gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
-            gt = np.concatenate(gt, axis=-1)
+            if self.urban_atlas is not False:
+                gt = self.urban_atlas_rasters['class_2018'][image_id][1].ReadAsArray(col_offset, row_offset, col_size, row_size)
 
-            if self.low_level_only:
-                gt = gt[:, :, 0]
+            else:
+                gt = [self.gt_rasters[att][image_id][1].ReadAsArray(col_offset, row_offset, col_size, row_size)
+                      for att in ['Material', 'Class_2', 'Class_1']]
+                gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
+                gt = np.concatenate(gt, axis=-1)
+
+                if self.low_level_only:
+                    gt = gt[:, :, 0]
 
             gt = np.asarray(np.copy(gt), dtype="int64")
             gt = torch.from_numpy(gt)
