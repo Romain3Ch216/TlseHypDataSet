@@ -123,7 +123,7 @@ class TlseHypDataSet(Dataset):
                 for att in self.unlabeled_zones_path)
         elif self.urban_atlas is not False:
             self.urban_atlas_rasters = {
-                'class_2018': [(self.images[i], gdal.Open(path[:-3] + 'tif', gdal.GA_ReadOnly) for i, path in enumerate(self.urban_atlas_path['class_2018']))
+                'class_2018': [(self.images[i], gdal.Open(path[:-3] + 'tif', gdal.GA_ReadOnly)) for (i, path) in enumerate(self.urban_atlas_path['class_2018'])]
             }
         else:
             self.gt_rasters = dict(
@@ -132,6 +132,8 @@ class TlseHypDataSet(Dataset):
 
         if unlabeled:
             self.compute_unlabeled_pixels()
+        elif self.urban_atlas is not False:
+            self.compute_urban_atlas_patches()
         else:
             if pred_mode == 'patch':
                 self.compute_patches()
@@ -601,7 +603,7 @@ class TlseHypDataSet(Dataset):
 
     def compute_urban_atlas_patches(self):
         group_list, patches, img_list = [], [], []
-        for i, (img_id, gt) in enumerate(self.urban_atlas_rasters['Material']):
+        for i, (img_id, gt) in enumerate(self.urban_atlas_rasters['class_2018']):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
             # groups = groups.ReadAsArray(gdal.GA_ReadOnly)
             nx_patches = gt.shape[0] // self.patch_size

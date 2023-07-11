@@ -249,3 +249,48 @@ class IBI(SpectralIndex):
         num = self.ndbi(data) - (self.savi(data)+self.mndwi(data))/2
         den = self.ndbi(data) + (self.savi(data)+self.mndwi(data))/2 + self.epsilon
         return self.ceil(num/den)
+
+
+class ClayIndex(SpectralIndex):
+    """
+    """
+
+    def __init__(self, wv: np.ndarray):
+        super().__init__(wv)
+        self.lambdas = [1.19, 2.22, 2.25]
+
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+        bands = self._get_bands(self.lambdas)
+        indice = (data[:, :, bands[0]] + data[:, :, bands[2]] - data[:, :, bands[1]]) / \
+                 (data[:, :, bands[0]] + data[:, :, bands[1]] + data[:, :, bands[2]])
+        return indice
+
+
+class GravelIndex(SpectralIndex):
+    """
+    """
+
+    def __init__(self, wv: np.ndarray):
+        super().__init__(wv)
+        self.lambdas = [2.25, 2.3, 2.35]
+
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+        bands = self._get_bands(self.lambdas)
+        indice = (data[:, :, bands[0]] + data[:, :, bands[2]] - data[:, :, bands[1]]) / \
+                 (data[:, :, bands[0]] + data[:, :, bands[1]] + data[:, :, bands[2]])
+        return indice
+
+
+class PlasticIndex(SpectralIndex):
+    """
+    """
+
+    def __init__(self, wv: np.ndarray):
+        super().__init__(wv)
+        self.lambdas = [1.69, 1.72, 1.75]
+
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+        bands = self._get_bands(self.lambdas)
+        indice = (data[:, :, bands[0]] + data[:, :, bands[2]] - data[:, :, bands[1]]) / \
+                 (data[:, :, bands[0]] + data[:, :, bands[1]] + data[:, :, bands[2]])
+        return indice
