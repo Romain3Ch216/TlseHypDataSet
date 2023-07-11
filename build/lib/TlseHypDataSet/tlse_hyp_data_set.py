@@ -113,7 +113,7 @@ class TlseHypDataSet(Dataset):
         self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
 
         if self.urban_atlas:
-            self.urban_atlas = gpd.read_file(os.path.join(self.root_path, 'urban_atlas', 'urban_atlas_1.shp'))
+            self.urban_atlas = gpd.read_file(os.path.join(self.root_path, 'urban_atlas', 'urban_atlas.shp'))
             self.urban_atlas_path = self.rasterize_urban_atlas()
 
         print('Open ground truth rasters...')
@@ -122,9 +122,9 @@ class TlseHypDataSet(Dataset):
                 (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.unlabeled_zones_path[att])])
                 for att in self.unlabeled_zones_path)
         elif self.urban_atlas is not False:
-            self.urban_atlas_rasters = {
-                'class_2018': [(self.images[i], gdal.Open(path[:-3] + 'tif', gdal.GA_ReadOnly)) for (i, path) in enumerate(self.urban_atlas_path['class_2018'])]
-            }
+            self.urban_atlas_rasters = dict(
+                (att, [(self.images[i], gdal.Open(path[:-3] + 'tif', gdal.GA_ReadOnly)) for (i, path) in enumerate(self.urban_atlas_path[att])]) for att in self.urban_atlas_path
+            )
         else:
             self.gt_rasters = dict(
                 (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.gts_path[att])])
@@ -437,7 +437,7 @@ class TlseHypDataSet(Dataset):
                 else:
                     yield gt.loc[indices[i], 'geometry'], np.int8(gt.loc[indices[i], attribute])
 
-        for attribute in ['class_2018']:
+        for attribute in ['Group', 'class_2018']:
             paths[attribute] = []
             dtype = 'uint8'
             rasterio_dtype = rasterio.uint8
@@ -445,12 +445,12 @@ class TlseHypDataSet(Dataset):
             for id in gt_per_image.groups:
                 id = int(id-1)
                 img_path = self.images_path[id]
-                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'urban_atlas_{}.tif'.format(id)))
-                if 'urban_atlas_{}.tif'.format(id) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'urban_atlas_{}_{}.tif'.format(attribute, id)))
+                if 'urban_atlas_{}_{}.tif'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
                     continue
                 else:
-                    path = os.path.join(self.root_path, 'rasters', 'urban_atlas_{}.bsq'.format(id))
-                    if 'urban_atlas_{}.bsq'.format(id) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                    path = os.path.join(self.root_path, 'rasters', 'urban_atlas_{}_{}.bsq'.format(attribute, id))
+                    if 'urban_atlas_{}_{}.bsq'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
                         pass
                     else:
                         img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
@@ -603,9 +603,9 @@ class TlseHypDataSet(Dataset):
 
     def compute_urban_atlas_patches(self):
         group_list, patches, img_list = [], [], []
-        for i, (img_id, gt) in enumerate(self.urban_atlas_rasters['class_2018']):
+        for i, ((img_id, gt), (_, groups)) in enumerate(zip(self.urban_atlas_rasters['class_2018'], self.urban_atlas_rasters['Group'])):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
-            # groups = groups.ReadAsArray(gdal.GA_ReadOnly)
+            groups = groups.ReadAsArray(gdal.GA_ReadOnly)
             nx_patches = gt.shape[0] // self.patch_size
             ny_patches = gt.shape[1] // self.patch_size
             for k in range(nx_patches):
@@ -614,20 +614,26 @@ class TlseHypDataSet(Dataset):
                     left = l * self.patch_size
                     labels = gt[top: min(gt.shape[0], top + self.patch_size),
                              left: min(gt.shape[1], left + self.patch_size)]
-                    # group = groups[top: min(gt.shape[0], top + self.patch_size),
-                    #          left: min(gt.shape[1], left + self.patch_size)]
+                    group = groups[top: min(gt.shape[0], top + self.patch_size),
+                             left: min(gt.shape[1], left + self.patch_size)]
                     if labels.sum() > 10:
-                        # list_groups = np.unique(group[group != 0])
-                        # n_px_groups = [(group == group_id).sum() for group_id in list_groups]
-                        # group = list_groups[np.argmax(n_px_groups)]
+                        list_groups = np.unique(group[group != 0])
+                        n_px_groups = [(group == group_id).sum() for group_id in list_groups]
+                        group = list_groups[np.argmax(n_px_groups)]
                         patches.append(tuple((left, top, self.patch_size, self.patch_size)))
                         img_list.append(i)
-                        # group_list.append(group)
+                        group_list.append(group)
 
         self.samples = np.zeros((len(group_list), 6), dtype=int)
         self.samples[:, 0] = img_list
-        # self.samples[:, 1] = group_list
+        self.samples[:, 1] = group_list
         self.samples[:, 2:] = np.array(patches)
+
+        self.train_urban_atlas_indices = np.where(np.array(group_list) == 1)[0]
+        self.val_urban_atlas_indices = np.where(np.array(group_list) == 2)[0]
+
+    def urban_atlas_sampler(self):
+        return SubsetSampler(self.train_urban_atlas_indices), SubsetSampler(self.val_urban_atlas_indices)
 
     def save_data_set(self):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'

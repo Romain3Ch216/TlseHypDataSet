@@ -122,9 +122,9 @@ class TlseHypDataSet(Dataset):
                 (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.unlabeled_zones_path[att])])
                 for att in self.unlabeled_zones_path)
         elif self.urban_atlas is not False:
-            self.urban_atlas_rasters = {
-                'class_2018': [(self.images[i], gdal.Open(path[:-3] + 'tif', gdal.GA_ReadOnly)) for (i, path) in enumerate(self.urban_atlas_path['class_2018'])]
-            }
+            self.urban_atlas_rasters = dict(
+                (att, [(self.images[i], gdal.Open(path[:-3] + 'tif', gdal.GA_ReadOnly)) for (i, path) in enumerate(self.urban_atlas_path[att])]) for att in self.urban_atlas_path
+            )
         else:
             self.gt_rasters = dict(
                 (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.gts_path[att])])
@@ -437,7 +437,7 @@ class TlseHypDataSet(Dataset):
                 else:
                     yield gt.loc[indices[i], 'geometry'], np.int8(gt.loc[indices[i], attribute])
 
-        for attribute in ['Image', 'Group', 'class_2018']:
+        for attribute in ['Group', 'class_2018']:
             paths[attribute] = []
             dtype = 'uint8'
             rasterio_dtype = rasterio.uint8
@@ -603,7 +603,7 @@ class TlseHypDataSet(Dataset):
 
     def compute_urban_atlas_patches(self):
         group_list, patches, img_list = [], [], []
-        for i, (img_id, gt), (_, groups) in enumerate(zip(self.urban_atlas_rasters['class_2018'], self.urban_atlas_rasters['Group'])):
+        for i, ((img_id, gt), (_, groups)) in enumerate(zip(self.urban_atlas_rasters['class_2018'], self.urban_atlas_rasters['Group'])):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
             groups = groups.ReadAsArray(gdal.GA_ReadOnly)
             nx_patches = gt.shape[0] // self.patch_size
