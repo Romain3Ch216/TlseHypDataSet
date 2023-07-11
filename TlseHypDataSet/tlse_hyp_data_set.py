@@ -113,7 +113,7 @@ class TlseHypDataSet(Dataset):
         self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
 
         if self.urban_atlas:
-            self.urban_atlas = gpd.read_file(os.path.join(self.root_path, 'urban_atlas', 'urban_atlas_1.shp'))
+            self.urban_atlas = gpd.read_file(os.path.join(self.root_path, 'urban_atlas', 'urban_atlas.shp'))
             self.urban_atlas_path = self.rasterize_urban_atlas()
 
         print('Open ground truth rasters...')
@@ -435,7 +435,7 @@ class TlseHypDataSet(Dataset):
                 else:
                     yield gt.loc[indices[i], 'geometry'], np.int8(gt.loc[indices[i], attribute])
 
-        for attribute in ['class_2018']:
+        for attribute in ['Image', 'Group', 'class_2018']:
             paths[attribute] = []
             dtype = 'uint8'
             rasterio_dtype = rasterio.uint8
@@ -443,12 +443,12 @@ class TlseHypDataSet(Dataset):
             for id in gt_per_image.groups:
                 id = int(id-1)
                 img_path = self.images_path[id]
-                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'urban_atlas_{}.tif'.format(id)))
-                if 'urban_atlas_{}.tif'.format(id) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'urban_atlas_{}_{}.tif'.format(attribute, id)))
+                if 'urban_atlas_{}_{}.tif'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
                     continue
                 else:
-                    path = os.path.join(self.root_path, 'rasters', 'urban_atlas_{}.bsq'.format(id))
-                    if 'urban_atlas_{}.bsq'.format(id) in os.listdir(os.path.join(self.root_path, 'rasters')):
+                    path = os.path.join(self.root_path, 'rasters', 'urban_atlas_{}_{}.bsq'.format(attribute, id))
+                    if 'urban_atlas_{}_{}.bsq'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
                         pass
                     else:
                         img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
