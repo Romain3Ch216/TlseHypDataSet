@@ -126,9 +126,9 @@ class TlseHypDataSet(Dataset):
                 (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.unlabeled_zones_path[att])])
                 for att in self.unlabeled_zones_path)
         elif self.urban_atlas is not False:
-            self.urban_atlas_rasters = {
-                'class_2018': [(self.images[i], gdal.Open(path[:-3] + 'tif', gdal.GA_ReadOnly)) for (i, path) in enumerate(self.urban_atlas_path['class_2018'])]
-            }
+            self.urban_atlas_rasters = dict(
+                (att, [(self.images[i], gdal.Open(path[:-3] + 'tif', gdal.GA_ReadOnly)) for (i, path) in enumerate(self.urban_atlas_path[att])]) for att in self.urban_atlas_path
+            )
         else:
             self.gt_rasters = dict(
                 (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.gts_path[att])])
@@ -156,7 +156,8 @@ class TlseHypDataSet(Dataset):
             if self.data_on_gpu:
                 print('Loading whole data on device...')
                 self.h5py_data = self.h5py_data[()]
-                self.h5py_labels = self.h5py_labels[()]
+                if self.unlabeled is False:
+                    self.h5py_labels = self.h5py_labels[()]
 
         self.default_splits = []
         for split_id in range(1, 9):
@@ -441,7 +442,7 @@ class TlseHypDataSet(Dataset):
                 else:
                     yield gt.loc[indices[i], 'geometry'], np.int8(gt.loc[indices[i], attribute])
 
-        for attribute in ['Image', 'Group', 'class_2018']:
+        for attribute in ['Group', 'class_2018']:
             paths[attribute] = []
             dtype = 'uint8'
             rasterio_dtype = rasterio.uint8
@@ -607,7 +608,7 @@ class TlseHypDataSet(Dataset):
 
     def compute_urban_atlas_patches(self):
         group_list, patches, img_list = [], [], []
-        for i, (img_id, gt), (_, groups) in enumerate(zip(self.urban_atlas_rasters['class_2018'], self.urban_atlas_rasters['Group'])):
+        for i, ((img_id, gt), (_, groups)) in enumerate(zip(self.urban_atlas_rasters['class_2018'], self.urban_atlas_rasters['Group'])):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
             groups = groups.ReadAsArray(gdal.GA_ReadOnly)
             nx_patches = gt.shape[0] // self.patch_size
@@ -641,10 +642,16 @@ class TlseHypDataSet(Dataset):
 
     def save_data_set(self):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
-        data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled))
-        labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled))
-        if 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
-                (self.unlabeled or 'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, self.unlabeled) in os.listdir(os.path.join(self.root_path, 'inputs'))):
+        if self.unlabeled:
+            option = '_unlabeled'
+        elif self.urban_atlas is not False:
+            option = '_urban_atlas'
+        else:
+            option = '_'
+        data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, option))
+        labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, option))
+        if 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, option) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
+                (self.unlabeled or 'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, option) in os.listdir(os.path.join(self.root_path, 'inputs'))):
             self.saved_h5py = True
             print("Data already saved in .h5py files.")
         else:
@@ -656,7 +663,7 @@ class TlseHypDataSet(Dataset):
                 labels_file = h5py.File(labels_file_path, "w")
             if self.pred_mode == 'pixel':
                 batch_size = 1024
-            elif self.unalebeled:
+            elif self.unlabeled:
                 batch_size = 2**13
             else:
                 batch_size = 16
@@ -734,6 +741,10 @@ class TlseHypDataSet(Dataset):
                 gt = gt[self.patch_size // 2, self.patch_size // 2]
 
         if self.transform is not None and (self.saved_h5py and self.h5py):
+            if isinstance(sample, np.ndarray):
+                sample = torch.from_numpy(sample)
+            if isinstance(gt, np.ndarray):
+                gt = torch.from_numpy(gt)
             sample, gt = self.transform((sample, gt))
 
         return sample, gt
