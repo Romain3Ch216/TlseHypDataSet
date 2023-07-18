@@ -30,6 +30,10 @@ class HyperspectralDataSet(Dataset):
     def labels(self):
         raise NotImplementedError
 
+    @property
+    def n_classes(self):
+        return len(self.labels)
+
     def load_data(self):
         raise NotImplementedError
 
@@ -117,6 +121,8 @@ class PaviaU(HyperspectralDataSet):
         }
 
         return labels_
+
+
 
     def load_data(self):
         img = io.loadmat(os.path.join(self.root_path, 'PaviaU.mat'))["paviaU"]

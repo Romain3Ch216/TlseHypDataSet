@@ -92,7 +92,10 @@ class TlseHypDataSet(Dataset):
             assert gt_file in os.listdir(os.path.join(root_path, 'GT'))
 
         self.ground_truth = gpd.read_file(os.path.join(self.root_path, 'GT', self.gt_path))
-        self.unlabeled_zones = gpd.read_file(os.path.join(self.root_path, 'UGT', 'unlabeled_zones.shp'))
+        if 'UGT' in os.listdir(self.root_path):
+            self.unlabeled_zones = gpd.read_file(os.path.join(self.root_path, 'UGT', 'unlabeled_zones.shp'))
+        else:
+            self.unlabeled_zones = None
 
         self.wv = None
         self.bbl = None
@@ -110,7 +113,8 @@ class TlseHypDataSet(Dataset):
                               for image_path in np.array(self.images_path)[np.array(self.images)]]
         print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()
-        self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
+        if self.unlabeled_zones is not None:
+          self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
 
         if self.urban_atlas:
             self.urban_atlas = gpd.read_file(os.path.join(self.root_path, 'urban_atlas', 'urban_atlas.shp'))
