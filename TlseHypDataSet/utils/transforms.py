@@ -110,10 +110,11 @@ class GaborFilters(object):
     to compute Gabor filters
     """
 
-    def __init__(self, n_frequencies: int = 4):
+    def __init__(self, n_frequencies: int = 4, n_thetas: int = 6):
         self.n_frequencies = n_frequencies
-        self.frequencies = np.linspace(0.1, 1, n_frequencies)
-        self.thetas = np.linspace(0, np.pi / 2, n_frequencies)
+        self.n_thetas = n_thetas
+        self.frequencies = np.linspace(0.3, 1.2, n_frequencies)
+        self.thetas = np.linspace(0, np.pi / 2, n_thetas)
 
     def __call__(self, data):
         """
@@ -123,7 +124,7 @@ class GaborFilters(object):
         sample, gt = data
         sample = sample.numpy()
         sample = np.mean(sample, axis=-1)
-        features = torch.zeros((sample.shape[0], sample.shape[1], self.n_frequencies ** 2))
+        features = torch.zeros((sample.shape[0], sample.shape[1], self.n_frequencies * self.n_thetas))
         k = 0
         for freq in self.frequencies:
             for theta in self.thetas:

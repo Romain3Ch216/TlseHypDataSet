@@ -11,7 +11,8 @@ import os
 
 __all__ = [
     'CoreSet',
-    'core_set_selection'
+    'core_set_selection',
+    'random_selection'
 ]
 
 
@@ -46,6 +47,7 @@ def dataset_to_tensors(dataset):
         i += batch_size
     return samples, labels
 
+
 def dataset_to_labels(dataset):
     sample, gt = dataset.__getitem__(0)
     assert sample.shape[0] == 1, "Samples must be in 1D."
@@ -59,7 +61,6 @@ def dataset_to_labels(dataset):
     return labels
 
 
-
 def core_set_selection(dataset, budget=10, metric=None, dim_reduction='autoencoder', n_components=8):
     core_set = CoreSet(budget, metric, dim_reduction, n_components)
     file = 'core_set_selection.pkl'
@@ -68,6 +69,19 @@ def core_set_selection(dataset, budget=10, metric=None, dim_reduction='autoencod
             selection = pkl.load(f)
     else:
         selection = core_set(dataset)
+        with open(os.path.join(dataset.root_path, 'outputs', file), 'wb') as f:
+            pkl.dump(selection, f)
+    return selection
+
+
+def random_selection(dataset, budget=10):
+    random_selection_ = RandomSelection(budget)
+    file = 'random_selection.pkl'
+    if file in os.listdir(os.path.join(dataset.root_path, 'outputs')):
+        with open(os.path.join(dataset.root_path, 'outputs', file), 'rb') as f:
+            selection = pkl.load(f)
+    else:
+        selection = random_selection_(dataset)
         with open(os.path.join(dataset.root_path, 'outputs', file), 'wb') as f:
             pkl.dump(selection, f)
     return selection
@@ -172,3 +186,23 @@ def k_center_greedy(data: np.ndarray,
         dis_data[num_of_already_selected + i, ~select_result] = metric(data[[p]], data[~select_result])
         mins = torch.min(mins, dis_data[num_of_already_selected + i])
     return index[select_result]
+
+
+class RandomSelection:
+    def __init__(self, budget):
+        self.budget = budget
+
+    def transform(self, dataset):
+        data, labels = dataset_to_tensors(dataset)
+        return data, labels
+
+    def __call__(self, dataset):
+        selection = {}
+        data, labels = self.transform(dataset)
+        indices = np.arange(data.shape[0])
+        print("Random sampling...")
+        for class_id in np.unique(labels):
+            indices_samples = indices[class_id == labels]
+            random_selection = np.random.choice(np.arange(len(indices_samples)), size=self.budget, replace=False)
+            selection[class_id] = indices_samples[random_selection]
+        return selection
