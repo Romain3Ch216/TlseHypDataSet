@@ -113,8 +113,8 @@ class TlseHypDataSet(Dataset):
         self.image_rasters = [gdal.Open(os.path.join(self.root_path, 'images', image_path + '.tif'), gdal.GA_ReadOnly)
                               for image_path in np.array(self.images_path)[np.array(self.images)]]
 
-        with open(os.path.join(self.root_path, 'inputs', 'zero_masks.pkl'), 'rb') as f:
-            self.zero_masks = pkl.load(f)
+        # with open(os.path.join(self.root_path, 'inputs', 'zero_masks.pkl'), 'rb') as f:
+        #     self.zero_masks = pkl.load(f)
 
         print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()

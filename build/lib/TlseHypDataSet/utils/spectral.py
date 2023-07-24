@@ -27,7 +27,10 @@ class SpectralWrapper(nn.Module):
         z, B = {}, 0
 
         for model_id, model in self.models.items():
-            z[model_id] = model(x[:, :, B:B+model.n_channels])
+            out = model(x[:, :, B:B+model.n_channels])
+            if isinstance(out, np.ndarray):
+                out = torch.from_numpy(out)
+            z[model_id] = out
             B += model.n_channels
 
         keys = list(z.keys())

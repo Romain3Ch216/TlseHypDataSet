@@ -56,6 +56,7 @@ class TlseHypDataSet(Dataset):
         self.data_on_gpu = data_on_gpu
         self.unlabeled = unlabeled
         self.urban_atlas = urban_atlas
+        self.rgb_bands = np.array([77, 32, 0])
 
         make_dirs([os.path.join(self.root_path, 'inputs')])
         make_dirs([os.path.join(self.root_path, 'outputs')])
@@ -92,7 +93,10 @@ class TlseHypDataSet(Dataset):
             assert gt_file in os.listdir(os.path.join(root_path, 'GT'))
 
         self.ground_truth = gpd.read_file(os.path.join(self.root_path, 'GT', self.gt_path))
-        self.unlabeled_zones = gpd.read_file(os.path.join(self.root_path, 'UGT', 'unlabeled_zones.shp'))
+        if 'UGT' in os.listdir(self.root_path):
+            self.unlabeled_zones = gpd.read_file(os.path.join(self.root_path, 'UGT', 'unlabeled_zones.shp'))
+        else:
+            self.unlabeled_zones = None
 
         self.wv = None
         self.bbl = None
@@ -108,9 +112,14 @@ class TlseHypDataSet(Dataset):
         print('Open images...')
         self.image_rasters = [gdal.Open(os.path.join(self.root_path, 'images', image_path + '.tif'), gdal.GA_ReadOnly)
                               for image_path in np.array(self.images_path)[np.array(self.images)]]
+
+        # with open(os.path.join(self.root_path, 'inputs', 'zero_masks.pkl'), 'rb') as f:
+        #     self.zero_masks = pkl.load(f)
+
         print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()
-        self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
+        if self.unlabeled_zones is not None:
+            self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
 
         if self.urban_atlas:
             self.urban_atlas = gpd.read_file(os.path.join(self.root_path, 'urban_atlas', 'urban_atlas.shp'))
@@ -518,6 +527,7 @@ class TlseHypDataSet(Dataset):
         group_list, patches, img_list = [], [], []
         for i, ((img_id, gt), (_, groups)) in enumerate(zip(self.gt_rasters['Material'], self.gt_rasters['Group'])):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
+            zero_mask_ = self.zero_masks[i]
             groups = groups.ReadAsArray(gdal.GA_ReadOnly)
             nx_patches = gt.shape[0] // self.patch_size
             ny_patches = gt.shape[1] // self.patch_size
@@ -529,7 +539,9 @@ class TlseHypDataSet(Dataset):
                              left: min(gt.shape[1], left + self.patch_size)]
                     group = groups[top: min(gt.shape[0], top + self.patch_size),
                              left: min(gt.shape[1], left + self.patch_size)]
-                    if labels.sum() > 10:
+                    zero_mask = zero_mask_[top: min(gt.shape[0], top + self.patch_size),
+                             left: min(gt.shape[1], left + self.patch_size)]
+                    if labels.sum() > 10 and np.sum(zero_mask) > (0.1 * self.patch_size ** 2):
                         list_groups = np.unique(group[group != 0])
                         n_px_groups = [(group == group_id).sum() for group_id in list_groups]
                         group = list_groups[np.argmax(n_px_groups)]
@@ -736,7 +748,7 @@ class TlseHypDataSet(Dataset):
             if self.pred_mode == 'pixel' and self.patch_size > 1:
                 gt = gt[self.patch_size // 2, self.patch_size // 2]
 
-        if self.transform is not None and (self.saved_h5py and self.h5py):
+        if self.transform is not None and ((self.saved_h5py and self.h5py) or (self.h5py is False)):
             if isinstance(sample, np.ndarray):
                 sample = torch.from_numpy(sample)
             if isinstance(gt, np.ndarray):
