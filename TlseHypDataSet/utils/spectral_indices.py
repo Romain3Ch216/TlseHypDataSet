@@ -1,3 +1,5 @@
+import pdb
+
 import torch
 import numpy as np
 from TlseHypDataSet.utils.spectral import SpectralIndex
@@ -7,9 +9,13 @@ class Identity(SpectralIndex):
     """
     Returns identity for given spectral bands
     """
-    def __init__(self, wv: np.ndarray, chunk: int = 20):
+    def __init__(self, wv: np.ndarray, chunk: int = 20, wv_max=None):
         super().__init__(wv)
-        self.bands = np.linspace(0, len(wv)-1, chunk).astype(int)
+        if wv_max is not None:
+            n = np.sum(wv < wv_max)
+        else:
+            n = len(wv) - 1
+        self.bands = np.linspace(0, n, chunk).astype(int)
         self.dim = len(self.bands)
 
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
