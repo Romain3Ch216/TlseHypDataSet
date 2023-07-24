@@ -30,6 +30,10 @@ class HyperspectralDataSet(Dataset):
     def labels(self):
         raise NotImplementedError
 
+    @property
+    def n_classes(self):
+        return len(self.labels)
+
     def load_data(self):
         raise NotImplementedError
 
@@ -101,6 +105,7 @@ class PaviaU(HyperspectralDataSet):
         super().__init__(root_path, patch_size, min_overlapping)
         self.name = 'PaviaU'
         self.wv = np.linspace(0.43, 0.86, 103)
+        self.rgb_bands = np.array([65, 28, 2])
 
     @property
     def labels(self):
@@ -129,6 +134,7 @@ class Houston(HyperspectralDataSet):
         self.name = 'Houston'
         self.bbl = np.ones(48)
         self.bands = np.arange(1, 49)
+        self.rgb_bands = np.array([23, 12, 6])
         self.wv = np.array([374.399994,  388.700012,  403.100006,  417.399994,  431.700012,  446.100006,
   460.399994,  474.700012,  489.000000,  503.399994,  517.700012,  532.000000,
   546.299988,  560.599976,  574.900024,  589.200012,  603.599976,  617.900024,
@@ -210,5 +216,4 @@ class Houston(HyperspectralDataSet):
             gt = src.read()
             gt = gt.reshape(gt.shape[1], gt.shape[2])
 
-        img = (img - img.min()) / (img.max() - img.min())
         return img, gt
