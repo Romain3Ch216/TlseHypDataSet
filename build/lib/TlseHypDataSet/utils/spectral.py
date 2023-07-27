@@ -25,7 +25,8 @@ class SpectralWrapper(nn.Module):
 
     def forward(self, x):
         z, B = {}, 0
-
+        if len(x.shape) < 3:
+            x = x.unsqueeze(1)
         for model_id, model in self.models.items():
             out = model(x[:, :, B:B+model.n_channels])
             if isinstance(out, np.ndarray):

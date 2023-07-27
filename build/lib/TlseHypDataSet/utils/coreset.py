@@ -42,8 +42,10 @@ def dataset_to_tensors(dataset):
     i = 0
     for sample, gt in loader:
         batch_size = sample.shape[0]
-        samples[i: i+batch_size, :] = sample.squeeze(1)
-        labels[i: i+batch_size] = gt.squeeze(1)
+        sample = sample.view(batch_size, -1)
+        gt = gt.view(batch_size)
+        samples[i: i+batch_size, :] = sample
+        labels[i: i+batch_size] = gt
         i += batch_size
     return samples, labels
 
@@ -56,7 +58,7 @@ def dataset_to_labels(dataset):
     i = 0
     for _, gt in loader:
         batch_size = gt.shape[0]
-        labels[i: i+batch_size] = gt.squeeze(1)
+        labels[i: i+batch_size] = gt.view(batch_size)
         i += batch_size
     return labels
 
@@ -193,13 +195,13 @@ class RandomSelection:
         self.budget = budget
 
     def transform(self, dataset):
-        data, labels = dataset_to_tensors(dataset)
-        return data, labels
+        labels = dataset_to_labels(dataset)
+        return labels
 
     def __call__(self, dataset):
         selection = {}
-        data, labels = self.transform(dataset)
-        indices = np.arange(data.shape[0])
+        labels = self.transform(dataset)
+        indices = np.arange(labels.shape[0])
         print("Random sampling...")
         for class_id in np.unique(labels):
             indices_samples = indices[class_id == labels]
