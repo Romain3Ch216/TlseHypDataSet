@@ -113,8 +113,11 @@ class TlseHypDataSet(Dataset):
         self.image_rasters = [gdal.Open(os.path.join(self.root_path, 'images', image_path + '.tif'), gdal.GA_ReadOnly)
                               for image_path in np.array(self.images_path)[np.array(self.images)]]
 
-        # with open(os.path.join(self.root_path, 'inputs', 'zero_masks.pkl'), 'rb') as f:
-        #     self.zero_masks = pkl.load(f)
+        if 'zero_masks.pkl' in os.listdir(os.path.join(self.root_path, 'inputs')):
+            with open(os.path.join(self.root_path, 'inputs', 'zero_masks.pkl'), 'rb') as f:
+                self.zero_masks = pkl.load(f)
+        else:
+            self.zero_masks = [np.ones((img.RasterYSize, img.RasterXSize)) for img in self.image_rasters]
 
         print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()
@@ -238,26 +241,24 @@ class TlseHypDataSet(Dataset):
             13: 'Cement',
             14: 'Brown paving stone',
             15: 'Clear paving stone',
-            16: 'Pink concrete paving stone',
-            17: 'Clear concrete paving stone',
-            18: 'Running track',
-            19: 'Synthetic grass',
-            20: 'Healthy grass',
-            21: 'Stressed grass',
-            22: 'Tree',
-            23: 'Bare soil',
-            24: 'Cement with gravels',
-            25: 'Gravels',
-            26: 'Rocks',
-            27: 'Green porous concrete',
-            28: 'Red porous concrete',
-            29: 'Seaweed',
-            30: 'Water - swimming pool',
-            31: 'Water',
-            32: 'Sorgho',
-            33: 'Wheat',
-            34: 'Field bean',
-            35: 'Clear plastic cover'
+            16: 'Clear plastic cover',
+            17: 'Running track',
+            18: 'Synthetic grass',
+            19: 'Healthy grass',
+            20: 'Stressed grass',
+            21: 'Tree',
+            22: 'Bare soil',
+            23: 'Gravels',
+            24: 'Rocks',
+            25: 'Green porous concrete',
+            26: 'Red porous concrete',
+            27: 'Seaweed',
+            28: 'Water - swimming pool',
+            29: 'Water',
+            30: 'Sorgho',
+            31: 'Wheat',
+            32: 'Field bean',
+
         }
         return labels_
 
