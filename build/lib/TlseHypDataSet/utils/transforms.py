@@ -85,7 +85,7 @@ class SpectralIndices(object):
             NDVI_RE(wv),
             VgNIR_BI(wv),
             SAVI(wv),
-            Identity(wv)
+            Identity(wv, wv_max=0.86)
         )
 
     def __call__(self, data):

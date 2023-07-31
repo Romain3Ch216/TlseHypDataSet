@@ -35,7 +35,7 @@ def vis_proportions(dataset, proportions):
     return fig
 
 
-def vis_selection(dataset, selection, figures='multi', tick_size=15, label_fontsize=18):
+def vis_selection(dataset, selection, figures='multi', tick_size=15, label_fontsize=15, title_size=18):
     n_classes = dataset.n_classes
     class_ids = np.arange(1, n_classes + 1)
     if figures == 'multi':
@@ -50,7 +50,7 @@ def vis_selection(dataset, selection, figures='multi', tick_size=15, label_fonts
                     ax.plot(dataset.wv, sp, alpha=0.5)
                 ax.set_ylim(0, 1)
                 ax.grid(True, linestyle='--', alpha=0.5)
-                ax.set_title('{} - {}'.format(class_id, dataset.labels[class_id]), fontsize=tick_size)
+                ax.set_title('{} - {}'.format(class_id, dataset.labels[class_id]), fontsize=title_size)
                 ax.tick_params(axis='x', labelsize=tick_size)
                 ax.tick_params(axis='y', labelsize=tick_size)
                 ax.set_xlabel('Wavelength (µm)', fontsize=label_fontsize)
