@@ -121,32 +121,31 @@ class TlseHypDataSet(Dataset):
 
         print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()
-        if self.unlabeled_zones is not None:
-            self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
+        self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
 
         if self.urban_atlas:
             self.urban_atlas = gpd.read_file(os.path.join(self.root_path, 'urban_atlas', 'urban_atlas.shp'))
             self.urban_atlas_path = self.rasterize_urban_atlas()
 
         print('Open ground truth rasters...')
-        if unlabeled:
-            self.unlabeled_rasters = dict(
-                (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.unlabeled_zones_path[att])])
-                for att in self.unlabeled_zones_path)
-        elif self.urban_atlas is not False:
+
+        if self.urban_atlas is not False:
             self.urban_atlas_rasters = dict(
                 (att, [(self.images[i], gdal.Open(path[:-3] + 'tif', gdal.GA_ReadOnly)) for (i, path) in enumerate(self.urban_atlas_path[att])]) for att in self.urban_atlas_path
             )
         else:
+            self.unlabeled_rasters = dict(
+                (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.unlabeled_zones_path[att])])
+                for att in self.unlabeled_zones_path)
             self.gt_rasters = dict(
                 (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.gts_path[att])])
                 for att in self.gts_path)
 
-        if unlabeled:
-            self.compute_unlabeled_pixels()
-        elif self.urban_atlas is not False:
+        if self.urban_atlas is not False:
             self.compute_urban_atlas_patches()
         else:
+            self.compute_unlabeled_pixels()
+            self.unlabeled_dataset = UnlabeledData(self.unlabeled_samples)
             if pred_mode == 'patch':
                 self.compute_patches()
             elif pred_mode == 'pixel':
@@ -610,21 +609,21 @@ class TlseHypDataSet(Dataset):
             col_list.extend(col_offset)
             row_list.extend(row_offset)
 
-        self.samples = np.zeros((len(group_list), 6), dtype=int)
-        self.samples[:, 0] = img_list
-        self.samples[:, 1] = group_list
-        self.samples[:, 2] = col_list
-        self.samples[:, 3] = row_list
-        self.samples[:, 4] = self.patch_size
-        self.samples[:, 5] = self.patch_size
+        self.unlabeled_samples = np.zeros((len(group_list), 6), dtype=int)
+        self.unlabeled_samples[:, 0] = img_list
+        self.unlabeled_samples[:, 1] = group_list
+        self.unlabeled_samples[:, 2] = col_list
+        self.unlabeled_samples[:, 3] = row_list
+        self.unlabeled_samples[:, 4] = self.patch_size
+        self.unlabeled_samples[:, 5] = self.patch_size
 
         self.train_unlabeled_indices = np.where(np.array(group_list) == 1)[0]
         self.val_unlabeled_indices = np.where(np.array(group_list) == 2)[0]
 
         if self.subset < 1:
-            n_samples = int(self.subset * self.samples.shape[0])
-            subset = np.random.choice(np.arange(self.samples.shape[0]), size=n_samples, replace=False)
-            self.samples = self.samples[subset]
+            n_samples = int(self.subset * self.unlabeled_samples.shape[0])
+            subset = np.random.choice(np.arange(self.unlabeled_samples.shape[0]), size=n_samples, replace=False)
+            self.unlabeled_samples = self.unlabeled_samples[subset]
 
     def unlabeled_sampler(self):
         return SubsetSampler(self.train_unlabeled_indices), SubsetSampler(self.val_unlabeled_indices)
@@ -788,4 +787,27 @@ class SubsetSampler(torch.utils.data.Sampler):
 
     def __len__(self):
         return len(self.indices)
+
+
+class UnlabeledData(Dataset):
+    def __init__(self, samples):
+        self.samples = samples
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, i):
+        image_id = self.samples[i, 0]
+
+        coordinates = self.samples[i, 2:]
+        col_offset, row_offset, col_size, row_size = [int(x) for x in coordinates]
+
+        sample = self.image_rasters[image_id].ReadAsArray(col_offset, row_offset, col_size, row_size,
+                                                          band_list=self.bands)
+
+        sample = np.transpose(sample, (1, 2, 0))
+        sample = sample / 10 ** 4
+        sample = np.asarray(np.copy(sample), dtype="float32")
+        sample = torch.from_numpy(sample)
+        return sample
 
