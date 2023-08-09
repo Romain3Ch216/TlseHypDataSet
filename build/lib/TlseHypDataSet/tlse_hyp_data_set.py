@@ -173,10 +173,24 @@ class TlseHypDataSet(Dataset):
                 "TlseHypDataSet.default_splits", "split_{}.pkl".format(split_id)))
             self.default_splits.append(split)
 
-        self.test_patches = [{
-            'img_id': 1,
-            'coords': (1000, 500, 200, 400)
-            }]
+        self.test_patches = [
+            {
+                'img_id': 1,
+                'coords': (900, 600, 300, 300)
+            },
+            {
+                'img_id': 1,
+                'coords': (1500, 1470, 300, 300)
+            },
+            {
+                'img_id': 1,
+                'coords': (2700, 3950, 300, 300)
+            },
+            {
+                'img_id': 6,
+                'coords': (2500, 3600, 300, 300)
+            }
+        ]
 
     def read_metadata(self):
         self.wv = []
