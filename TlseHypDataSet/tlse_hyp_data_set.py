@@ -596,6 +596,14 @@ class TlseHypDataSet(Dataset):
             col_list.extend(col_offset)
             row_list.extend(row_offset)
 
+            unlabeled_coords = np.where((gt == 0) * (groups == 0))
+            group_list.extend(-1 * np.ones(len(unlabeled_coords[0])))
+            img_list.extend([i] * len(unlabeled_coords[0]))
+            col_offset = unlabeled_coords[1] - self.patch_size // 2
+            row_offset = unlabeled_coords[0] - self.patch_size // 2
+            col_list.extend(col_offset)
+            row_list.extend(row_offset)
+
         self.samples = np.zeros((len(group_list), 6), dtype=int)
         self.samples[:, 0] = img_list
         self.samples[:, 1] = group_list
