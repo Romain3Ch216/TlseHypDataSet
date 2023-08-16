@@ -277,6 +277,16 @@ class TlseHypDataSet(Dataset):
         return labels_
 
     @property
+    def permeability(self):
+        permeability_ = {}
+        for class_id in self.labels:
+            if class_id <= 16:
+                permeability_[class_id] = 0
+            else:
+                permeability_[class_id] = 1
+        return permeability_
+
+    @property
     def urban_atlas_labels(self):
         labels_ = {
             'Airports': 1,
