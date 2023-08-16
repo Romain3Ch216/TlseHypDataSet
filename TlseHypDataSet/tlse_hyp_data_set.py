@@ -278,6 +278,9 @@ class TlseHypDataSet(Dataset):
 
     @property
     def permeability(self):
+        """
+        0 is impermeable, 1 is permeable
+        """
         permeability_ = {}
         for class_id in self.labels:
             if class_id <= 16:
