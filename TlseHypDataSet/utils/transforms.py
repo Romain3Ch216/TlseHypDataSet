@@ -113,7 +113,7 @@ class GaborFilters(object):
     def __init__(self, n_frequencies: int = 4, n_thetas: int = 6):
         self.n_frequencies = n_frequencies
         self.n_thetas = n_thetas
-        self.frequencies = np.linspace(0.3, 1.2, n_frequencies)
+        self.frequencies = np.linspace(0.05, 0.8, n_frequencies)
         self.thetas = np.linspace(0, np.pi / 2, n_thetas)
 
     def __call__(self, data):
