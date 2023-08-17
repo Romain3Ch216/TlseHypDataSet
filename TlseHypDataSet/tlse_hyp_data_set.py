@@ -354,7 +354,7 @@ class TlseHypDataSet(Dataset):
             gt = rasterio.open(path)
             gt = gt.read()
             for class_id in np.unique(gt):
-                if class_id != 0:
+                if class_id != 0 and class_id != 40:
                     n_samples_[class_id-1] += np.sum(gt == class_id)
         return n_samples_
 
@@ -587,7 +587,7 @@ class TlseHypDataSet(Dataset):
         for i, ((img_id, gt), (_, groups)) in enumerate(zip(self.gt_rasters['Material'], self.gt_rasters['Group'])):
             gt = gt.ReadAsArray(gdal.GA_ReadOnly)
             groups = groups.ReadAsArray(gdal.GA_ReadOnly)
-            coords = np.where(gt != 0)
+            coords = np.where((gt != 0) * (gt != 40))
             groups = groups[coords]
             img_list.extend([i] * len(groups))
             group_list.extend(groups)
@@ -596,7 +596,7 @@ class TlseHypDataSet(Dataset):
             col_list.extend(col_offset)
             row_list.extend(row_offset)
 
-            unlabeled_coords = np.where((gt == 0) * (groups == 0))
+            unlabeled_coords = np.where(gt == 40)
             group_list.extend(-1 * np.ones(len(unlabeled_coords[0])))
             img_list.extend([i] * len(unlabeled_coords[0]))
             col_offset = unlabeled_coords[1] - self.patch_size // 2

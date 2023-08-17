@@ -34,6 +34,7 @@ class DisjointDataSplit:
     @property
     def groups_(self):
         all_groups = np.unique(self.dataset.ground_truth['Group'])
+        all_groups = all_groups[np.isnan(all_groups) == False]
         groups = {
             'labeled': all_groups[self.splits_ == 0],
             'unlabeled': all_groups[self.splits_ == 1],

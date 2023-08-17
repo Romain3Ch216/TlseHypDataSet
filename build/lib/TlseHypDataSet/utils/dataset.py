@@ -34,6 +34,7 @@ class DisjointDataSplit:
     @property
     def groups_(self):
         all_groups = np.unique(self.dataset.ground_truth['Group'])
+        all_groups = all_groups[np.isnan(all_groups) == False]
         groups = {
             'labeled': all_groups[self.splits_ == 0],
             'unlabeled': all_groups[self.splits_ == 1],
@@ -47,7 +48,8 @@ class DisjointDataSplit:
         indices = self.indices_
         sets = {
             'labeled': Subset(self.dataset, indices['labeled']),
-            'unlabeled': Subset(self.dataset, indices['unlabeled']),
+            'unlabeled_pool': Subset(self.dataset, indices['unlabeled_pool']),
+            'unlabeled_set': Subset(self.dataset, indices['unlabeled_set']),
             'validation': Subset(self.dataset, indices['validation']),
             'test': Subset(self.dataset, indices['test'])
         }
@@ -62,10 +64,17 @@ class DisjointDataSplit:
             indices = np.where(indices == 1)[0]
             return indices
 
+        def get_unlabeled_indices(groups):
+            indices = np.zeros_like(groups)
+            indices += groups == -1
+            indices = np.where(indices == 1)[0]
+            return indices
+
         groups = self.groups_
         indices = {
             'labeled': get_indices(groups['labeled'], self.dataset.samples[:, 1]),
-            'unlabeled': get_indices(groups['unlabeled'], self.dataset.samples[:, 1]),
+            'unlabeled_pool': get_indices(groups['unlabeled'], self.dataset.samples[:, 1]),
+            'unlabeled_set': get_unlabeled_indices(self.dataset.samples[:, 1]),
             'validation': get_indices(groups['validation'], self.dataset.samples[:, 1]),
             'test': get_indices(groups['test'], self.dataset.samples[:, 1]),
 
