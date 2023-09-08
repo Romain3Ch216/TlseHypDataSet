@@ -305,7 +305,7 @@ class TlseHypDataSet(Dataset):
                 else:
                     yield gt.loc[indices[i], 'geometry'], int(gt.loc[indices[i], attribute])
 
-        for attribute in ['Material', 'Class_2', 'Class_1', 'Group']:
+        for attribute in ['Material', 'Abstract', 'Group']:
             paths[attribute] = []
             dtype = 'uint16' if attribute == 'Group' else 'uint8'
             rasterio_dtype = rasterio.uint16 if dtype == 'uint16' else rasterio.uint8
@@ -502,7 +502,7 @@ class TlseHypDataSet(Dataset):
             sample = torch.from_numpy(sample)
 
             gt = [self.gt_rasters[att][image_id][1].ReadAsArray(col_offset, row_offset, col_size, row_size)
-                  for att in ['Material', 'Class_2', 'Class_1']]
+                  for att in ['Material', 'Abstract']]
             gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
             gt = np.concatenate(gt, axis=-1)
 
