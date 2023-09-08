@@ -37,9 +37,8 @@ class TlseHypDataSet(Dataset):
                  images: List = None,
                  subset: float = 1,
                  in_h5py: bool = False,
-                 data_on_gpu: bool = False,
-                 unlabeled: bool = False,
-                 urban_atlas: bool = False):
+                 data_on_gpu: bool = False
+                 ):
 
         self.name = 'Toulouse'
         self.root_path = root_path
