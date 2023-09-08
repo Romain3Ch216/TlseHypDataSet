@@ -15,6 +15,7 @@ import pkgutil
 import csv
 import seaborn as sns
 import h5py
+import importlib_resources
 import pkg_resources
 
 
@@ -81,7 +82,8 @@ class TlseHypDataSet(Dataset):
                 assert image + '.hdr' in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(image)
                 tile_raster(os.path.join(self.root_path, 'images', image + '.bsq'))
 
-        self.ground_truth = gpd.read_file(pkg_resources.resource_stream('TlseHypDataSet.ground_truth', 'ground_truth.shp'))
+        gt_rsrc = importlib_resources.files('TlseHypDataSet.ground_truth').joinpath('ground_truth.shp')
+        self.ground_truth = gpd.read_file(gt_rsrc)
 
         self.wv = None
         self.bbl = None
@@ -106,8 +108,6 @@ class TlseHypDataSet(Dataset):
 
         print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()
-        if self.unlabeled_zones is not None:
-            self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
 
         print('Open ground truth rasters...')
         self.gt_rasters = dict(
@@ -132,8 +132,7 @@ class TlseHypDataSet(Dataset):
 
         self.standard_splits = []
         for split_id in range(1, 9):
-            split = pkl.load(pkg_resources.resource_stream(
-                "TlseHypDataSet.default_splits", "split_{}.pkl".format(split_id)))
+            split = pkl.load(pkg_resources.resource_stream('TlseHypDataSet.default_splits', 'split_{}.pkl'.format(split_id)))
             self.standard_splits.append(split)
 
         self.test_patches = [
@@ -450,51 +449,33 @@ class TlseHypDataSet(Dataset):
 
     def save_data_set(self):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
-        if self.unlabeled:
-            option = '_unlabeled'
-        elif self.urban_atlas is not False:
-            option = '_urban_atlas'
-        else:
-            option = '_'
+        option = '_'
         data_file_path = os.path.join(self.root_path, 'inputs', 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, option))
         labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, option))
-        if 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, option) in os.listdir(os.path.join(self.root_path, 'inputs')) and\
-                (self.unlabeled or 'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, option) in os.listdir(os.path.join(self.root_path, 'inputs'))):
+        if 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, option) in os.listdir(os.path.join(self.root_path, 'inputs')):
             self.saved_h5py = True
             print("Data already saved in .h5py files.")
         else:
             self.saved_h5py = False
             data_file = h5py.File(data_file_path, "w")
-            if self.unlabeled:
-                labels_file_path = None
-            else:
-                labels_file = h5py.File(labels_file_path, "w")
+            labels_file = h5py.File(labels_file_path, "w")
             if self.pred_mode == 'pixel':
-                batch_size = 1024
-            elif self.unlabeled:
                 batch_size = 2**13
             else:
                 batch_size = 16
 
-            if self.unlabeled:
-                sample = self.__getitem__(0)
-            else:
-                sample, gt = self.__getitem__(0)
-                labels = labels_file.create_dataset("data", tuple((len(self),)) + gt.shape, dtype='int8')
+            sample, gt = self.__getitem__(0)
+            labels = labels_file.create_dataset("data", tuple((len(self),)) + gt.shape, dtype='int8')
 
             data = data_file.create_dataset("data", tuple((len(self),)) + sample.shape, dtype='float32')
 
             loader = torch.utils.data.DataLoader(self, shuffle=False, batch_size=batch_size)
             i = 0
             for batch in loader:
-                if self.unlabeled:
-                    sample = batch
-                else:
-                    sample, gt = batch
+                sample, gt = batch
                 b = sample.shape[0]
                 data[i: i + b] = sample
-                if self.unlabeled is False:
-                    labels[i: i + b] = gt
+                labels[i: i + b] = gt
                 i += b
             self.saved_h5py = True
 

@@ -1,6 +1,7 @@
 import numpy as np
 from ortools.sat.python import cp_model
 from torch.utils.data import Subset
+import pickle as pkl
 
 
 __all__ = [
@@ -10,7 +11,20 @@ __all__ = [
 
 
 class DisjointDataSplit:
-    def __init__(self, dataset, splits=None, proportions=None, file=None, save=None, n_solutions=1000):
+    """
+    A class to produce spatially disjoint train / test splits of the ground truth
+    """
+    def __init__(self, dataset, splits=None, proportions=None, file=None, n_solutions=1000):
+        """
+
+        :param dataset: a TlseHypDataSet object
+        :param splits: an array of size (1 x n_groups) which values are in {0, 1, 2}
+        (0: labeled set, 1: unlabeled set, 2: test set) (from the sat_split_solver function)
+        :param proportions: if the argument splits is not given, compute a split given the proportions
+        [p_labeled, p_val, p_test] with the sat_split_solver function
+        :param file: a file where a split is saved as pickle file
+        :param n_solutions: the maximum number of solutions for the SAT solver (used only with the proportions argument)
+        """
         self.dataset = dataset
         self.areas = self.dataset.areas
         if splits is None and file is None:
@@ -19,11 +33,6 @@ class DisjointDataSplit:
                                            p_val=proportions[1],
                                            p_test=proportions[2],
                                            n_solutions=n_solutions)
-            """
-            if save is not None:
-                with open(file, 'wb') as f:
-                    pkl.dump(splits, f)
-            """
 
         elif splits is None and file is not None:
             with open(file, 'rb') as f:
@@ -33,6 +42,9 @@ class DisjointDataSplit:
 
     @property
     def groups_(self):
+        """
+        :return: dict with the group ids according to the set
+        """
         all_groups = np.unique(self.dataset.ground_truth['Group'])
         all_groups = all_groups[np.isnan(all_groups) == False]
         groups = {
@@ -45,9 +57,12 @@ class DisjointDataSplit:
 
     @property
     def sets_(self):
+        """
+        :return: dict with the train / validation / ... sets as Dataset objects
+        """
         indices = self.indices_
         sets = {
-            'labeled': Subset(self.dataset, indices['labeled']),
+            'train': Subset(self.dataset, indices['train']),
             'unlabeled_pool': Subset(self.dataset, indices['unlabeled_pool']),
             'unlabeled_set': Subset(self.dataset, indices['unlabeled_set']),
             'validation': Subset(self.dataset, indices['validation']),
@@ -57,6 +72,9 @@ class DisjointDataSplit:
 
     @property
     def indices_(self):
+        """
+        :return: dict with the indices of samples in the Dataset acoording the set
+        """
         def get_indices(groups_in_set, groups):
             indices = np.zeros_like(groups)
             for group in groups_in_set:
@@ -72,7 +90,7 @@ class DisjointDataSplit:
 
         groups = self.groups_
         indices = {
-            'labeled': get_indices(groups['labeled'], self.dataset.samples[:, 1]),
+            'train': get_indices(groups['labeled'], self.dataset.samples[:, 1]),
             'unlabeled_pool': get_indices(groups['unlabeled'], self.dataset.samples[:, 1]),
             'unlabeled_set': get_unlabeled_indices(self.dataset.samples[:, 1]),
             'validation': get_indices(groups['validation'], self.dataset.samples[:, 1]),
@@ -88,9 +106,9 @@ class DisjointDataSplit:
         validation_areas = np.sum(self.areas[self.splits_ == 2, :], axis=0) / np.sum(self.areas, axis=0)
         test_areas = np.sum(self.areas[self.splits_ == 3, :], axis=0) / np.sum(self.areas, axis=0)
         proportions = {
-            'labeled': labeled_areas,
-            'unlabeled': unlabeled_areas,
-            'validation':validation_areas,
+            'train': labeled_areas,
+            'unlabeled_pool': unlabeled_areas,
+            'validation': validation_areas,
             'test': test_areas
         }
         return proportions
@@ -123,30 +141,9 @@ def sat_split_solver(dataset,
     total_area = int(np.sum(areas))
 
     # Compute minimum areas for each class
-    non_zeros_groups = np.sum(areas > 0, axis=0)
     prop = np.array([p_labeled, p_val, p_test])
-    prop = np.sort(prop)
     total_l_area, total_v_area, total_t_area = [], [], []
     for class_id in range(areas.shape[1]):
-        """
-        if non_zeros_groups[class_id] <= 5:
-            class_areas = areas[:, class_id]
-            class_areas = class_areas[class_areas > 0]
-            class_areas = np.sort(class_areas)
-            if p_labeled > 0:
-                total_l_area.append(class_areas[np.where(prop == p_labeled)[0][0]] / p_labeled)
-            else:
-                total_l_area.append(0)
-            if p_val > 0:
-                total_v_area.append(class_areas[np.where(prop == p_val)[0][0]] / p_val)
-            else:
-                total_v_area.append(0)
-            if p_test > 0:
-                total_t_area.append(class_areas[np.where(prop == p_test)[0][0]] / p_test)
-            else:
-                total_t_area.append(0)
-        else:
-        """
         total_v_area.append(np.sum(areas[:, class_id]))
         total_l_area.append(np.sum(areas[:, class_id]))
         total_t_area.append(np.sum(areas[:, class_id]))
@@ -203,10 +200,10 @@ def sat_split_solver(dataset,
     solver = cp_model.CpSolver()
     solution_printer = VarArraySolutionPrinterWithLimit(sets, n_solutions)
     solver.parameters.enumerate_all_solutions = True
-    status = solver.Solve(model, solution_printer)
+    # status = solver.Solve(model, solution_printer)
     # print('Status = %s' % solver.StatusName(status))
     print('Number of solutions found: %i' % solution_printer.solution_count())
-    # assert solution_printer.solution_count() == 100
+    # assert solution_printer.solution_count() == n_solutions
     solutions = solution_printer.solutions()
     last_solution = list(solutions.keys())[-1]
     final_solution = solutions[last_solution]
@@ -251,6 +248,16 @@ def assert_feasible(total_l_area,
                     p_val,
                     p_test,
                     areas):
+    """
+    Assert is the problem is feasible, else decrease total_l_area, total_v_area, total_t_area
+    :param total_l_area: 1 x n_classes array with minimum pixels required by classe in the train set
+    :param total_v_area: 1 x n_classes array with minimum pixels required by class in the validation set
+    :param total_t_area: 1 x n_classes array with minimum pixels required by class in the train set
+    :param p_labeled: average proportion of pixels in the train set
+    :param p_val: average proportion of pixels in the validation set
+    :param p_test: average proportion of pixels in the test set
+    :param areas: n_groups x n_classes array with number of pixels by group and by class
+    """
     feasibility = True
     n_classes = areas.shape[1]
     for class_id in range(n_classes):
@@ -276,11 +283,10 @@ def assert_feasible(total_l_area,
                 i+= 1
                 current_area = 0
         feasible = (i >= 2) and (current_area >= total_areas[i])
-        # import pdb
-        # pdb.set_trace()
+
         if feasible is False:
             n_groups = []
-            cum_area = np.cumsum(area[area>0])
+            cum_area = np.cumsum(area[area > 0])
             i = int(prop[0] * len(cum_area))
             for k, set_id in enumerate(set_order):
                 n_groups.append(cum_area[i])
