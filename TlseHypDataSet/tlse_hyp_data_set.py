@@ -293,7 +293,7 @@ class TlseHypDataSet(Dataset):
         """
         Rasterize the ground truth shapefile.
         """
-        gt = self.ground_truth  # gpd.read_file(os.path.join(dataset.root_path, 'GT', dataset.gt_path))
+        gt = self.ground_truth
         make_dirs([os.path.join(self.root_path, 'rasters')])
         paths = {}
 
