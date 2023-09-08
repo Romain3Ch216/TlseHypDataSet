@@ -37,9 +37,8 @@ class TlseHypDataSet(Dataset):
                  images: List = None,
                  subset: float = 1,
                  in_h5py: bool = False,
-                 data_on_gpu: bool = False,
-                 unlabeled: bool = False,
-                 urban_atlas: bool = False):
+                 data_on_gpu: bool = False
+                 ):
 
         self.name = 'Toulouse'
         self.root_path = root_path
@@ -92,6 +91,7 @@ class TlseHypDataSet(Dataset):
         self.theta = 22.12 * np.pi / 180
         self.n_bands = None
         self.samples = None
+
 
         print('Read metadata...')
         self.read_metadata()
@@ -306,7 +306,7 @@ class TlseHypDataSet(Dataset):
                 else:
                     yield gt.loc[indices[i], 'geometry'], int(gt.loc[indices[i], attribute])
 
-        for attribute in ['Material', 'Class_2', 'Class_1', 'Group']:
+        for attribute in ['Material', 'Abstract', 'Group']:
             paths[attribute] = []
             dtype = 'uint16' if attribute == 'Group' else 'uint8'
             rasterio_dtype = rasterio.uint16 if dtype == 'uint16' else rasterio.uint8
@@ -400,9 +400,14 @@ class TlseHypDataSet(Dataset):
                     zero_mask = zero_mask_[top: min(gt.shape[0], top + self.patch_size),
                              left: min(gt.shape[1], left + self.patch_size)]
                     if labels.sum() > 10 and np.sum(zero_mask) > (0.1 * self.patch_size ** 2):
-                        list_groups = np.unique(group[group != 0])
-                        n_px_groups = [(group == group_id).sum() for group_id in list_groups]
-                        group = list_groups[np.argmax(n_px_groups)]
+                        labels_in_patch, counts = np.unique(labels, return_counts=True)
+                        labels_in_patch = [x for x in labels_in_patch if x !=0]
+                        if 40 in labels_in_patch and len(labels_in_patch) == 1: # labels_in_patch[np.argmax(counts)] == 40:
+                            group = -1
+                        else:
+                            list_groups = np.unique(group[group != 0])
+                            n_px_groups = [(group == group_id).sum() for group_id in list_groups]
+                            group = list_groups[np.argmax(n_px_groups)]
                         patches.append(tuple((left, top, self.patch_size, self.patch_size)))
                         img_list.append(i)
                         group_list.append(group)
@@ -503,7 +508,7 @@ class TlseHypDataSet(Dataset):
             sample = torch.from_numpy(sample)
 
             gt = [self.gt_rasters[att][image_id][1].ReadAsArray(col_offset, row_offset, col_size, row_size)
-                  for att in ['Material', 'Class_2', 'Class_1']]
+                  for att in ['Material', 'Abstract']]
             gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
             gt = np.concatenate(gt, axis=-1)
 
