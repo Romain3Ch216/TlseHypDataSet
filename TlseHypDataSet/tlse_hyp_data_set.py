@@ -54,8 +54,6 @@ class TlseHypDataSet(Dataset):
         self.transform = None
         self.saved_h5py = in_h5py
         self.data_on_gpu = data_on_gpu
-        self.unlabeled = unlabeled
-        self.urban_atlas = urban_atlas
         self.rgb_bands = np.array([77, 32, 0])
 
         make_dirs([os.path.join(self.root_path, 'inputs')])
@@ -92,11 +90,7 @@ class TlseHypDataSet(Dataset):
             gt_file = self.gt_path[:-3] + ext
             assert gt_file in os.listdir(os.path.join(root_path, 'GT'))
 
-        self.ground_truth = gpd.read_file(os.path.join(self.root_path, 'GT', self.gt_path))
-        if 'UGT' in os.listdir(self.root_path):
-            self.unlabeled_zones = gpd.read_file(os.path.join(self.root_path, 'UGT', 'unlabeled_zones.shp'))
-        else:
-            self.unlabeled_zones = None
+        self.ground_truth = gpd.read_file(pkg_resources.resource_stream('TlseHypDataSet.ground_truth', 'ground_truth.shp')
 
         self.wv = None
         self.bbl = None
@@ -124,48 +118,26 @@ class TlseHypDataSet(Dataset):
         if self.unlabeled_zones is not None:
             self.unlabeled_zones_path = self.rasterize_unlabeled_zones()
 
-        if self.urban_atlas:
-            self.urban_atlas = gpd.read_file(os.path.join(self.root_path, 'urban_atlas', 'urban_atlas.shp'))
-            self.urban_atlas_path = self.rasterize_urban_atlas()
-
         print('Open ground truth rasters...')
-        if unlabeled:
-            self.unlabeled_rasters = dict(
-                (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.unlabeled_zones_path[att])])
-                for att in self.unlabeled_zones_path)
-        elif self.urban_atlas is not False:
-            self.urban_atlas_rasters = dict(
-                (att, [(self.images[i], gdal.Open(path[:-3] + 'tif', gdal.GA_ReadOnly)) for (i, path) in enumerate(self.urban_atlas_path[att])]) for att in self.urban_atlas_path
-            )
-        else:
-            self.gt_rasters = dict(
-                (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.gts_path[att])])
-                for att in self.gts_path)
+        self.gt_rasters = dict(
+            (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.gts_path[att])])
+            for att in self.gts_path)
 
-        if unlabeled:
-            self.compute_unlabeled_pixels()
-        elif self.urban_atlas is not False:
-            self.compute_urban_atlas_patches()
+        if pred_mode == 'patch':
+            self.compute_patches()
+        elif pred_mode == 'pixel':
+            self.compute_pixels()
         else:
-            if pred_mode == 'patch':
-                self.compute_patches()
-            elif pred_mode == 'pixel':
-                self.compute_pixels()
-            else:
-                raise ValueError("pred_mode is either patch or pixel.")
+            raise ValueError("pred_mode is either patch or pixel.")
 
         if self.h5py:
             print('Saving data set in h5py files...')
             h5py_data, h5py_labels = self.save_data_set()
-            if self.unlabeled:
-                self.h5py_data = h5py.File(h5py_data, 'r')['data']
-            else:
-                self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r')['data'], h5py.File(h5py_labels, 'r')['data']
+            self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r')['data'], h5py.File(h5py_labels, 'r')['data']
             if self.data_on_gpu:
                 print('Loading whole data on device...')
                 self.h5py_data = self.h5py_data[()]
-                if self.unlabeled is False:
-                    self.h5py_labels = self.h5py_labels[()]
+                self.h5py_labels = self.h5py_labels[()]
 
         self.standard_splits = []
         for split_id in range(1, 9):
