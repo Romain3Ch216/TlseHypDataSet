@@ -167,11 +167,11 @@ class TlseHypDataSet(Dataset):
                 if self.unlabeled is False:
                     self.h5py_labels = self.h5py_labels[()]
 
-        self.default_splits = []
+        self.standard_splits = []
         for split_id in range(1, 9):
             split = pkl.load(pkg_resources.resource_stream(
                 "TlseHypDataSet.default_splits", "split_{}.pkl".format(split_id)))
-            self.default_splits.append(split)
+            self.standard_splits.append(split)
 
         self.test_patches = [
             {
