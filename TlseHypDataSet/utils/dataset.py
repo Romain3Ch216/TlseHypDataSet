@@ -63,8 +63,8 @@ class DisjointDataSplit:
         indices = self.indices_
         sets = {
             'train': Subset(self.dataset, indices['train']),
+            'labeled_pool': Subset(self.dataset, indices['labeled_pool']),
             'unlabeled_pool': Subset(self.dataset, indices['unlabeled_pool']),
-            'unlabeled_set': Subset(self.dataset, indices['unlabeled_set']),
             'validation': Subset(self.dataset, indices['validation']),
             'test': Subset(self.dataset, indices['test'])
         }
@@ -91,8 +91,8 @@ class DisjointDataSplit:
         groups = self.groups_
         indices = {
             'train': get_indices(groups['labeled'], self.dataset.samples[:, 1]),
-            'unlabeled_pool': get_indices(groups['unlabeled'], self.dataset.samples[:, 1]),
-            'unlabeled_set': get_unlabeled_indices(self.dataset.samples[:, 1]),
+            'labeled_pool': get_indices(groups['unlabeled'], self.dataset.samples[:, 1]),
+            'unlabeled_pool': get_unlabeled_indices(self.dataset.samples[:, 1]),
             'validation': get_indices(groups['validation'], self.dataset.samples[:, 1]),
             'test': get_indices(groups['test'], self.dataset.samples[:, 1]),
 
@@ -107,7 +107,7 @@ class DisjointDataSplit:
         test_areas = np.sum(self.areas[self.splits_ == 3, :], axis=0) / np.sum(self.areas, axis=0)
         proportions = {
             'train': labeled_areas,
-            'unlabeled_pool': unlabeled_areas,
+            'labeled_pool': unlabeled_areas,
             'validation': validation_areas,
             'test': test_areas
         }

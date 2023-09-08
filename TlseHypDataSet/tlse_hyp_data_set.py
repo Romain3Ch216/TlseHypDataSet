@@ -33,7 +33,7 @@ class TlseHypDataSet(Dataset):
                  pred_mode: str,
                  patch_size: int,
                  padding: int = 0,
-                 low_level_only: bool = False,
+                 annotations: str = 'land_cover',
                  images: List = None,
                  subset: float = 1,
                  in_h5py: bool = False,
@@ -45,7 +45,7 @@ class TlseHypDataSet(Dataset):
         self.pred_mode = pred_mode
         self.patch_size = patch_size
         self.padding = padding
-        self.low_level_only = low_level_only
+        self.annotations = annotations
         self.images = images
         self.subset = subset
         self.h5py = in_h5py
@@ -512,8 +512,14 @@ class TlseHypDataSet(Dataset):
             gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
             gt = np.concatenate(gt, axis=-1)
 
-            if self.low_level_only:
+            if self.annotations == 'land_cover':
                 gt = gt[:, :, 0]
+            elif self.annotations == 'land_use':
+                gt = gt[:, :, 1]
+            elif self.annotations == 'both':
+                pass
+            else:
+                raise NotImplementedError("annotations should be 'land_cover', 'land_use' or 'both'")
 
             gt = np.asarray(np.copy(gt), dtype="int64")
             gt = torch.from_numpy(gt)
