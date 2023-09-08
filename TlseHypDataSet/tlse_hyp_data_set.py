@@ -10,14 +10,12 @@ import pickle as pkl
 from osgeo import gdal
 import rasterio
 from rasterio.features import rasterize
-from TlseHypDataSet.utils.geometry import is_polygon_in_rectangle
 from TlseHypDataSet.utils.utils import make_dirs, data_in_folder, tile_raster
 import pkgutil
 import csv
 import seaborn as sns
 import h5py
 import pkg_resources
-import matplotlib.pyplot as plt
 
 
 __all__ = [
@@ -74,11 +72,8 @@ class TlseHypDataSet(Dataset):
         if self.images is None:
             self.images = np.arange(len(self.images_path))
 
-        self.gt_path = 'ground_truth.shp'
-
         dirs_in_root = os.listdir(root_path)
-        assert ('images' in dirs_in_root) and ('GT' in dirs_in_root), \
-            "Root directory should include an 'images' and a 'GT' folder."
+        assert ('images' in dirs_in_root), "Root directory should include an 'images' folder."
 
         for image in np.array(self.images_path)[np.array(self.images)]:
             if data_in_folder([image + '.tif'], os.path.join(root_path, 'images')) is False:
@@ -86,11 +81,7 @@ class TlseHypDataSet(Dataset):
                 assert image + '.hdr' in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(image)
                 tile_raster(os.path.join(self.root_path, 'images', image + '.bsq'))
 
-        for ext in ['cpg', 'dbf', 'shp', 'prj', 'shx']:
-            gt_file = self.gt_path[:-3] + ext
-            assert gt_file in os.listdir(os.path.join(root_path, 'GT'))
-
-        self.ground_truth = gpd.read_file(pkg_resources.resource_stream('TlseHypDataSet.ground_truth', 'ground_truth.shp')
+        self.ground_truth = gpd.read_file(pkg_resources.resource_stream('TlseHypDataSet.ground_truth', 'ground_truth.shp'))
 
         self.wv = None
         self.bbl = None
@@ -228,7 +219,7 @@ class TlseHypDataSet(Dataset):
             14: 'Brown paving stone',
             15: 'Clear paving stone',
             16: 'Clear plastic cover',
-            17: 'Running track',
+            17: 'Synthetic track',
             18: 'Synthetic grass',
             19: 'Healthy grass',
             20: 'Stressed grass',
@@ -260,36 +251,6 @@ class TlseHypDataSet(Dataset):
             else:
                 permeability_[class_id] = 1
         return permeability_
-
-    @property
-    def urban_atlas_labels(self):
-        labels_ = {
-            'Airports': 1,
-            'Arable land (annual crops)': 2,
-            'Construction sites': 3,
-            'Continuous urban fabric (S.L. : > 80%)': 4,
-            'Discontinuous dense urban fabric (S.L. : 50% -  80%)': 5,
-            'Discontinuous low density urban fabric (S.L. : 10% - 30%)': 6,
-            'Discontinuous medium density urban fabric (S.L. : 30% - 50%)': 7,
-            'Discontinuous very low density urban fabric (S.L. : < 10%)': 8,
-            'Fast transit roads and associated land': 9,
-            'Forests': 10,
-            'Green urban areas': 11,
-            'Herbaceous vegetation associations (natural grassland, moors...)': 12,
-            'Industrial, commercial, public, military and private units': 13,
-            'Isolated structures': 14,
-            'Land without current use': 15,
-            'Mineral extraction and dump sites': 16,
-            'Open spaces with little or no vegetation (beaches, dunes, bare rocks, glaciers)': 17,
-            'Other roads and associated land': 18,
-            'Pastures': 19,
-            'Permanent crops (vineyards, fruit trees, olive groves)': 20,
-            'Railways and associated land': 21,
-            'Sports and leisure facilities': 22,
-            'Water': 23
-        }
-        # labels_ = dict((k, np.int8(v)) for k, v in labels_.items())
-        return labels_
 
     @property
     def colors(self):
@@ -379,108 +340,6 @@ class TlseHypDataSet(Dataset):
                     tile_raster(path)
         return paths
 
-    def rasterize_unlabeled_zones(self):
-        """
-        Rasterize the ground truth shapefile.
-        """
-        gt = self.unlabeled_zones  # gpd.read_file(os.path.join(dataset.root_path, 'GT', dataset.gt_path))
-        make_dirs([os.path.join(self.root_path, 'rasters')])
-        paths = {}
-
-        def shapes(gt: GeoDataFrame, attribute: str):
-            indices = gt.index
-            for i in range(len(gt)):
-                if np.isnan(gt.loc[indices[i], attribute]):
-                    yield gt.loc[indices[i], 'geometry'], 0
-                else:
-                    yield gt.loc[indices[i], 'geometry'], int(gt.loc[indices[i], attribute])
-
-        for attribute in ['Image', 'Group']:
-            paths[attribute] = []
-            dtype = 'uint8'
-            rasterio_dtype = rasterio.uint8
-            gt_per_image = gt.groupby(by='Image')
-            for id in gt_per_image.groups:
-                id = int(id-1)
-                img_path = self.images_path[id]
-                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}_{}.tif'.format(attribute, id)))
-                if 'unlabeled_zones_{}_{}.tif'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
-                    continue
-                else:
-                    path = os.path.join(self.root_path, 'rasters', 'unlabeled_zones_{}_{}.bsq'.format(attribute, id))
-                    if 'unlabeled_zones_{}_{}.bsq'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
-                        pass
-                    else:
-                        img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
-                        shape = img.shape
-                        data = rasterize(shapes(gt_per_image.get_group(id+1), attribute),
-                                         shape[:2],
-                                         dtype=dtype,
-                                         transform=img.transform)
-                        data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
-
-                        with rasterio.Env():
-                            profile = img.profile
-                            profile.update(
-                                dtype=rasterio_dtype,
-                                count=1,
-                                compress='lzw')
-                            with rasterio.open(path, 'w', **profile) as dst:
-                                dst.write(data)
-                    tile_raster(path)
-        return paths
-
-    def rasterize_urban_atlas(self):
-        """
-        Rasterize the ground truth shapefile.
-        """
-        gt = self.urban_atlas
-        gt['class_2018'] = self.urban_atlas['class_2018'].replace(self.urban_atlas_labels)
-        make_dirs([os.path.join(self.root_path, 'rasters')])
-        paths = {}
-
-        def shapes(gt: GeoDataFrame, attribute: str):
-            indices = gt.index
-            for i in range(len(gt)):
-                if np.isnan(gt.loc[indices[i], attribute]):
-                    yield gt.loc[indices[i], 'geometry'], 0
-                else:
-                    yield gt.loc[indices[i], 'geometry'], np.int8(gt.loc[indices[i], attribute])
-
-        for attribute in ['Group', 'class_2018']:
-            paths[attribute] = []
-            dtype = 'uint8'
-            rasterio_dtype = rasterio.uint8
-            gt_per_image = gt.groupby(by='Image')
-            for id in gt_per_image.groups:
-                id = int(id-1)
-                img_path = self.images_path[id]
-                paths[attribute].append(os.path.join(self.root_path, 'rasters', 'urban_atlas_{}_{}.tif'.format(attribute, id)))
-                if 'urban_atlas_{}_{}.tif'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
-                    continue
-                else:
-                    path = os.path.join(self.root_path, 'rasters', 'urban_atlas_{}_{}.bsq'.format(attribute, id))
-                    if 'urban_atlas_{}_{}.bsq'.format(attribute, id) in os.listdir(os.path.join(self.root_path, 'rasters')):
-                        pass
-                    else:
-                        img = rasterio.open(os.path.join(self.root_path, 'images', img_path + '.bsq'))
-                        shape = img.shape
-                        data = rasterize(shapes(gt_per_image.get_group(id+1), attribute), shape[:2],
-                                         dtype=dtype,
-                                         transform=img.transform)
-                        data = data.reshape(1, data.shape[0], data.shape[1]).astype(int)
-
-                        with rasterio.Env():
-                            profile = img.profile
-                            profile.update(
-                                dtype=rasterio_dtype,
-                                count=1,
-                                compress='lzw')
-                            with rasterio.open(path, 'w', **profile) as dst:
-                                dst.write(data)
-                    tile_raster(path)
-        return paths
-
     def split_already_computed(self, p_labeled, p_val, p_test, timestamp):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
         file = 'ground_truth_split_{}_{}_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(timestamp, images, p_labeled, p_val, p_test)
@@ -491,7 +350,7 @@ class TlseHypDataSet(Dataset):
             print('Computing data sets split...')
         return already_computed
 
-    def load_splits(self, default=True, path=None, p_labeled=None, p_val=None, p_test=None, fold=None):
+    def load_splits(self, path=None, p_labeled=None, p_val=None, p_test=None, fold=None):
         if path is None:
             assert (p_labeled is not None) and (p_val is not None) and (p_test is not None) and (fold is not None), \
             "If a path is not given, then the proportions p_labeled, p_val and p_test must be provided, as well as the fold number"
@@ -589,73 +448,6 @@ class TlseHypDataSet(Dataset):
             subset = np.random.choice(np.arange(self.samples.shape[0]), size=n_samples, replace=False)
             self.samples = self.samples[subset]
 
-    def compute_unlabeled_pixels(self):
-        group_list, col_list, row_list, img_list = [], [], [], []
-        for i, ((_, gt), (_, groups)) in enumerate(zip(self.unlabeled_rasters['Image'], self.unlabeled_rasters['Group'])):
-            gt = gt.ReadAsArray(gdal.GA_ReadOnly)
-            groups = groups.ReadAsArray(gdal.GA_ReadOnly)
-            coords = np.where(gt != 0)
-            groups = groups[coords]
-            img_list.extend([i] * len(coords[0]))
-            group_list.extend(groups)
-            col_offset = coords[1] - self.patch_size // 2
-            row_offset = coords[0] - self.patch_size // 2
-            col_list.extend(col_offset)
-            row_list.extend(row_offset)
-
-        self.samples = np.zeros((len(group_list), 6), dtype=int)
-        self.samples[:, 0] = img_list
-        self.samples[:, 1] = group_list
-        self.samples[:, 2] = col_list
-        self.samples[:, 3] = row_list
-        self.samples[:, 4] = self.patch_size
-        self.samples[:, 5] = self.patch_size
-
-        self.train_unlabeled_indices = np.where(np.array(group_list) == 1)[0]
-        self.val_unlabeled_indices = np.where(np.array(group_list) == 2)[0]
-
-        if self.subset < 1:
-            n_samples = int(self.subset * self.samples.shape[0])
-            subset = np.random.choice(np.arange(self.samples.shape[0]), size=n_samples, replace=False)
-            self.samples = self.samples[subset]
-
-    def unlabeled_sampler(self):
-        return SubsetSampler(self.train_unlabeled_indices), SubsetSampler(self.val_unlabeled_indices)
-
-    def compute_urban_atlas_patches(self):
-        group_list, patches, img_list = [], [], []
-        for i, ((img_id, gt), (_, groups)) in enumerate(zip(self.urban_atlas_rasters['class_2018'], self.urban_atlas_rasters['Group'])):
-            gt = gt.ReadAsArray(gdal.GA_ReadOnly)
-            groups = groups.ReadAsArray(gdal.GA_ReadOnly)
-            nx_patches = gt.shape[0] // self.patch_size
-            ny_patches = gt.shape[1] // self.patch_size
-            for k in range(nx_patches):
-                for l in range(ny_patches):
-                    top = k * self.patch_size
-                    left = l * self.patch_size
-                    labels = gt[top: min(gt.shape[0], top + self.patch_size),
-                             left: min(gt.shape[1], left + self.patch_size)]
-                    group = groups[top: min(gt.shape[0], top + self.patch_size),
-                             left: min(gt.shape[1], left + self.patch_size)]
-                    if labels.sum() > 10:
-                        list_groups = np.unique(group[group != 0])
-                        n_px_groups = [(group == group_id).sum() for group_id in list_groups]
-                        group = list_groups[np.argmax(n_px_groups)]
-                        patches.append(tuple((left, top, self.patch_size, self.patch_size)))
-                        img_list.append(i)
-                        group_list.append(group)
-
-        self.samples = np.zeros((len(group_list), 6), dtype=int)
-        self.samples[:, 0] = img_list
-        self.samples[:, 1] = group_list
-        self.samples[:, 2:] = np.array(patches)
-
-        self.train_urban_atlas_indices = np.where(np.array(group_list) == 1)[0]
-        self.val_urban_atlas_indices = np.where(np.array(group_list) == 2)[0]
-
-    def urban_atlas_sampler(self):
-        return SubsetSampler(self.train_urban_atlas_indices), SubsetSampler(self.val_urban_atlas_indices)
-
     def save_data_set(self):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
         if self.unlabeled:
@@ -714,10 +506,7 @@ class TlseHypDataSet(Dataset):
     def __getitem__(self, i):
         if self.h5py and self.saved_h5py:
             sample = self.h5py_data[i]
-            if self.unlabeled:
-                return sample
-            else:
-                gt = self.h5py_labels[i]
+            gt = self.h5py_labels[i]
         else:
             image_id = self.samples[i, 0]
 
@@ -732,20 +521,13 @@ class TlseHypDataSet(Dataset):
             sample = np.asarray(np.copy(sample), dtype="float32")
             sample = torch.from_numpy(sample)
 
-            if self.unlabeled:
-                return sample
+            gt = [self.gt_rasters[att][image_id][1].ReadAsArray(col_offset, row_offset, col_size, row_size)
+                  for att in ['Material', 'Class_2', 'Class_1']]
+            gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
+            gt = np.concatenate(gt, axis=-1)
 
-            if self.urban_atlas is not False:
-                gt = self.urban_atlas_rasters['class_2018'][image_id][1].ReadAsArray(col_offset, row_offset, col_size, row_size)
-
-            else:
-                gt = [self.gt_rasters[att][image_id][1].ReadAsArray(col_offset, row_offset, col_size, row_size)
-                      for att in ['Material', 'Class_2', 'Class_1']]
-                gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
-                gt = np.concatenate(gt, axis=-1)
-
-                if self.low_level_only:
-                    gt = gt[:, :, 0]
+            if self.low_level_only:
+                gt = gt[:, :, 0]
 
             gt = np.asarray(np.copy(gt), dtype="int64")
             gt = torch.from_numpy(gt)
