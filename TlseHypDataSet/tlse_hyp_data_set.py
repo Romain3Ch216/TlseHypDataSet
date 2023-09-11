@@ -26,28 +26,33 @@ __all__ = [
 
 class TlseHypDataSet(Dataset):
     """
-
+    A torch.utils.data.Dataset object to process the Toulouse Hyperspectral Data Set
     """
-
     def __init__(self, root_path: str,
                  pred_mode: str,
                  patch_size: int,
-                 padding: int = 0,
                  annotations: str = 'land_cover',
                  images: List = None,
-                 subset: float = 1,
                  in_h5py: bool = False,
                  data_on_gpu: bool = False
                  ):
+        """
+        :param root_path: path to the folder where the data is stored
+        :param pred_mode: 'pixel' for pixel-wise classification or 'patch' for patch segmentation
+        :param patch_size: size of the patch, i.e. gives (batch_size x patch_size x patch_size x n_bands) dimensional samples
+        :param annotations: 'land_cover', 'land_use' or 'both'
+        :param images: select a subset of image tiles by specifying tile index
+        (in the following order [3d, 1c, 3a, 5c, 1d, 9c, 1b, 1e, 3e])
+        :param in_h5py: if True, save the data samples and labels in h5py files to speed up data reading
+        :param data_on_gpu: if True, store the whole data on the device (e.g. on the gpu)
+        """
 
         self.name = 'Toulouse'
         self.root_path = root_path
         self.pred_mode = pred_mode
         self.patch_size = patch_size
-        self.padding = padding
         self.annotations = annotations
         self.images = images
-        self.subset = subset
         self.h5py = in_h5py
         self.transform = None
         self.saved_h5py = in_h5py
@@ -446,11 +451,6 @@ class TlseHypDataSet(Dataset):
         self.samples[:, 3] = row_list
         self.samples[:, 4] = self.patch_size
         self.samples[:, 5] = self.patch_size
-
-        if self.subset < 1:
-            n_samples = int(self.subset * self.samples.shape[0])
-            subset = np.random.choice(np.arange(self.samples.shape[0]), size=n_samples, replace=False)
-            self.samples = self.samples[subset]
 
     def save_data_set(self):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
