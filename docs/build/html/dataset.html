@@ -18,7 +18,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Quick start" href="quickstart.html" /> 
+    <link rel="prev" title="Getting started" href="quickstart.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,8 +41,7 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Getting started</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Dataset</a></li>
 </ul>
 
@@ -74,8 +73,128 @@
 <h1>Dataset<a class="headerlink" href="#dataset" title="Permalink to this headline"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">TlseHypDataSet.tlse_hyp_data_set.</span></span><span class="sig-name descname"><span class="pre">TlseHypDataSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'land_cover'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_h5py</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_on_gpu</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">TlseHypDataSet.tlse_hyp_data_set.</span></span><span class="sig-name descname"><span class="pre">TlseHypDataSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'land_cover'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_h5py</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_on_gpu</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet" title="Permalink to this definition"></a></dt>
+<dd><p>A torch.utils.data.Dataset object to process the Toulouse Hyperspectral Data Set</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>root_path</strong> – path to the folder where the data is stored</p></li>
+<li><p><strong>pred_mode</strong> – ‘pixel’ for pixel-wise classification or ‘patch’ for patch segmentation</p></li>
+<li><p><strong>patch_size</strong> – size of the patch, i.e. gives (batch_size x patch_size x patch_size x n_bands) dimensional samples</p></li>
+<li><p><strong>annotations</strong> – ‘land_cover’, ‘land_use’ or ‘both’</p></li>
+<li><p><strong>images</strong> – select a subset of image tiles by specifying tile index (in the following order [3d, 1c, 3a, 5c, 1d, 9c, 1b, 1e, 3e])</p></li>
+<li><p><strong>in_h5py</strong> – if True, save the data samples and labels in h5py files to speed up data reading</p></li>
+<li><p><strong>data_on_gpu</strong> – if True, store the whole data on the device (e.g. on the gpu)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.E_dif">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">E_dif</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.E_dif" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns the diffuse irradiance at ground level</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.E_dir">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">E_dir</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.E_dir" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns the direct irradiance at ground level</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.bands">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">bands</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.bands" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns a list of usable band indices</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.colors">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">colors</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.colors" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns a dict of class colors for land cover maps</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.land_cover_nomenclature">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">land_cover_nomenclature</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.land_cover_nomenclature" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns a dict with the land cover classes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.land_use_nomenclature">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">land_use_nomenclature</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.land_use_nomenclature" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns a dict with the land use classes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.n_bands">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">n_bands</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.n_bands" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns the number of usable spectral channels</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.permeability">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">permeability</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.permeability" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns a dict with the permeability of the land cover (0 = impermeable, 1 = permeable)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.rasterize_gt_shapefile">
+<span class="sig-name descname"><span class="pre">rasterize_gt_shapefile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.rasterize_gt_shapefile" title="Permalink to this definition"></a></dt>
+<dd><p>Rasterize the ground truth shapefile.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.theta">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">theta</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.theta" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns the solar zenith angle</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.wv">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">wv</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.wv" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Returns a list of the spectral channels wavelengths</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
 
 </section>
 
@@ -83,7 +202,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quick start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="Getting started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

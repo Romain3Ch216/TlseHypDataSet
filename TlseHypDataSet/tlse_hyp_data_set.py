@@ -41,8 +41,7 @@ class TlseHypDataSet(Dataset):
         :param pred_mode: 'pixel' for pixel-wise classification or 'patch' for patch segmentation
         :param patch_size: size of the patch, i.e. gives (batch_size x patch_size x patch_size x n_bands) dimensional samples
         :param annotations: 'land_cover', 'land_use' or 'both'
-        :param images: select a subset of image tiles by specifying tile index
-        (in the following order [3d, 1c, 3a, 5c, 1d, 9c, 1b, 1e, 3e])
+        :param images: select a subset of image tiles by specifying tile index (in the following order [3d, 1c, 3a, 5c, 1d, 9c, 1b, 1e, 3e])
         :param in_h5py: if True, save the data samples and labels in h5py files to speed up data reading
         :param data_on_gpu: if True, store the whole data on the device (e.g. on the gpu)
         """
@@ -89,12 +88,12 @@ class TlseHypDataSet(Dataset):
         gt_rsrc = importlib_resources.files('TlseHypDataSet.ground_truth').joinpath('ground_truth.shp')
         self.ground_truth = gpd.read_file(gt_rsrc)
 
-        self.wv = None
-        self.bbl = None
-        self.E_dir = None
-        self.E_dif = None
-        self.theta = 22.12 * np.pi / 180
-        self.n_bands = None
+        self.wv_ = None
+        self.bbl_ = None
+        self.E_dir_ = None
+        self.E_dif_ = None
+        self.theta_ = 22.12 * np.pi / 180
+        self.n_bands_ = None
         self.samples = None
 
 
@@ -160,52 +159,90 @@ class TlseHypDataSet(Dataset):
         ]
 
     def read_metadata(self):
-        self.wv = []
-        self.bbl = []
-        self.E_dir = []
-        self.E_dif = []
+        wv = []
+        bbl = []
+        E_dir = []
+        E_dif = []
 
         metadata = pkgutil.get_data(__name__, "metadata/tlse_metadata.txt")
         data_reader = csv.reader(metadata.decode('utf-8').splitlines(), delimiter=' ')
 
         for i, line in enumerate(data_reader):
             if i > 0:
-                self.wv.append(float(line[0]))
-                self.bbl.append(line[1] == 'True')
-                self.E_dir.append(float(line[2]))
-                self.E_dif.append(float(line[3]))
+                wv.append(float(line[0]))
+                bbl.append(line[1] == 'True')
+                E_dir.append(float(line[2]))
+                E_dif.append(float(line[3]))
 
-        self.bbl = np.array(self.bbl)
-        self.E_dir = np.array(self.E_dir)
-        self.E_dif = np.array(self.E_dif)
-        self.wv = np.array(self.wv)
-        self.n_bands = self.bbl.sum()
-        self.E_dir = torch.from_numpy(self.E_dir[self.bbl] / np.cos(self.theta)).float()
-        self.E_dif = torch.from_numpy(self.E_dif[self.bbl]).float()
-        self.theta = torch.tensor([self.theta]).float()
+        self.bbl_ = np.array(bbl)
+        E_dir = np.array(E_dir)
+        E_dif = np.array(E_dif)
+        self.wv_ = np.array(wv)
+        self.n_bands_ = self.bbl_.sum()
+        self.E_dir_ = torch.from_numpy(E_dir[self.bbl_] / np.cos(self.theta_)).float()
+        self.E_dif_ = torch.from_numpy(E_dif[self.bbl_]).float()
+
+    @property
+    def theta(self):
+        """
+        :return: Returns the solar zenith angle
+        """
+        return torch.tensor([self.theta_]).float()
+
+    @property
+    def E_dir(self):
+        """
+        :return: Returns the direct irradiance at ground level
+        """
+        return self.E_dir_
+
+    @property
+    def E_dif(self):
+        """
+        :return: Returns the diffuse irradiance at ground level
+        """
+        return self.E_dif_
+
+    @property
+    def wv(self):
+        """
+        :return: Returns a list of the spectral channels wavelengths
+        """
+        return self.wv_
+
+    @property
+    def n_bands(self):
+        """
+        :return: Returns the number of usable spectral channels
+        """
+        return self.n_bands_
 
     @property
     def classes(self):
-        gt = gpd.read_file(self.path_gt)
+        gt_rsrc = importlib_resources.files('TlseHypDataSet.ground_truth').joinpath('ground_truth.shp')
+        gt = gpd.read_file(gt_rsrc)
         classes = np.unique(gt['Material'])
         classes = classes[~np.isnan(classes)]
         return classes
 
     @property
     def n_classes(self):
-        return len(self.labels)
+        return len(self.land_cover_nomenclature)
 
     @property
     def bands(self):
         """
-        Extract the band numbers and the bad band list from the header of the first image.
+        :return: Returns a list of usable band indices
         """
         bands = tuple(np.where(self.bbl.astype(int) != 0)[0].astype(int) + 1)
         bands = [int(b) for b in bands]
         return bands
 
     @property
-    def labels(self):
+    def land_cover_nomenclature(self):
+        """
+        :return: Returns a dict with the land cover classes
+        """
         labels_ = {
             1: 'Orange tile',
             2: 'Dark tile',
@@ -244,12 +281,33 @@ class TlseHypDataSet(Dataset):
         return labels_
 
     @property
+    def land_use_nomenclature(self):
+        """
+        :return: Returns a dict with the land use classes
+        """
+        labels_ = {
+            1: 'Roads',
+            2: 'Railways',
+            3: 'Roofs',
+            4: 'Parking lots',
+            5: 'Building sites',
+            6: 'Sport facilities',
+            7: 'Lakes / rivers / harbors',
+            8: 'Swimming pools',
+            9: 'Forests',
+            10: 'Cultivated fields',
+            11: 'Boats',
+            12: 'Open areas'
+        }
+        return labels_
+
+    @property
     def permeability(self):
         """
-        0 is impermeable, 1 is permeable
+        :return: Returns a dict with the permeability of the land cover (0 = impermeable, 1 = permeable)
         """
         permeability_ = {}
-        for class_id in self.labels:
+        for class_id in self.land_cover_nomenclature:
             if class_id <= 16:
                 permeability_[class_id] = 0
             else:
@@ -258,15 +316,14 @@ class TlseHypDataSet(Dataset):
 
     @property
     def colors(self):
+        """
+        :return: Returns a dict of class colors for land cover maps
+        """
         colors_ = sns.color_palette("hls", self.n_classes)
         return colors_
 
     @property
     def areas(self):
-        """
-
-        :return:
-        """
         groups = np.unique(self.ground_truth['Group'])
         n_groups = len(groups)
         classes = np.unique(self.ground_truth['Material'])
