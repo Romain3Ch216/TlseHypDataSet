@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet &mdash; TlseHypDataSet 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TlseHypDataSet
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dataset.html">Dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../split.html">Spatially disjoint ground truth splits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coreset.html">Core-set selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transforms.html">Transforms</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TlseHypDataSet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tlsehypdataset-tlse-hyp-data-set-tlsehypdataset">
+<h1>TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet<a class="headerlink" href="#tlsehypdataset-tlse-hyp-data-set-tlsehypdataset" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">TlseHypDataSet.tlse_hyp_data_set.</span></span><span class="sig-name descname"><span class="pre">TlseHypDataSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'land_cover'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_h5py</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_on_gpu</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet" title="Permalink to this definition"></a></dt>
+<dd><p>A torch.utils.data.Dataset object to process the Toulouse Hyperspectral Data Set</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>root_path</strong> – path to the folder where the data is stored</p></li>
+<li><p><strong>pred_mode</strong> – ‘pixel’ for pixel-wise classification or ‘patch’ for patch segmentation</p></li>
+<li><p><strong>patch_size</strong> – size of the patch, i.e. gives (batch_size x patch_size x patch_size x n_bands) dimensional samples</p></li>
+<li><p><strong>annotations</strong> – ‘land_cover’, ‘land_use’ or ‘both’</p></li>
+<li><p><strong>images</strong> – select a subset of image tiles by specifying tile index (in the following order [3d, 1c, 3a, 5c, 1d, 9c, 1b, 1e, 3e])</p></li>
+<li><p><strong>in_h5py</strong> – if True, save the data samples and labels in h5py files to speed up data reading</p></li>
+<li><p><strong>data_on_gpu</strong> – if True, store the whole data on the device (e.g. on the gpu)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'land_cover'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_h5py</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_on_gpu</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.__init__" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>root_path</strong> – path to the folder where the data is stored</p></li>
+<li><p><strong>pred_mode</strong> – ‘pixel’ for pixel-wise classification or ‘patch’ for patch segmentation</p></li>
+<li><p><strong>patch_size</strong> – size of the patch, i.e. gives (batch_size x patch_size x patch_size x n_bands) dimensional samples</p></li>
+<li><p><strong>annotations</strong> – ‘land_cover’, ‘land_use’ or ‘both’</p></li>
+<li><p><strong>images</strong> – select a subset of image tiles by specifying tile index (in the following order [3d, 1c, 3a, 5c, 1d, 9c, 1b, 1e, 3e])</p></li>
+<li><p><strong>in_h5py</strong> – if True, save the data samples and labels in h5py files to speed up data reading</p></li>
+<li><p><strong>data_on_gpu</strong> – if True, store the whole data on the device (e.g. on the gpu)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.__init__" title="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(root_path, pred_mode, patch_size[, ...])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">param root_path</dt>
+<dd class="field-odd"><p>path to the folder where the data is stored</p>
+</dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_patches</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_pixels</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_splits</span></code>([path, p_labeled, p_val, ...])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../dataset.html#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.rasterize_gt_shapefile" title="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.rasterize_gt_shapefile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rasterize_gt_shapefile</span></code></a>()</p></td>
+<td><p>Rasterize the ground truth shapefile.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_metadata</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_data_set</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_splits</span></code>(solutions, p_labeled, p_val, ...)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">split_already_computed</span></code>(p_labeled, p_val, ...)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">areas</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../dataset.html#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.bands" title="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.bands"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bands</span></code></a></p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>A list of usable band indices</p>
+</dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">classes</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../dataset.html#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.colors" title="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.colors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">colors</span></code></a></p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>A dict of class colors for land cover maps</p>
+</dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_classes</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_samples</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../dataset.html#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.permeability" title="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.permeability"><code class="xref py py-obj docutils literal notranslate"><span class="pre">permeability</span></code></a></p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">return</dt>
+<dd class="field-odd"><p>A dict with the permeability of the land cover (0 = impermeable, 1 = permeable)</p>
+</dd>
+</dl>
+</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">proj_data</span></code></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Romain Thoreau.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

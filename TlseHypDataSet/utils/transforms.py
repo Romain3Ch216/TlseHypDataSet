@@ -28,7 +28,7 @@ class GaussianConvolution(torch.nn.Module):
 
 class GaussianFilter(object):
     """
-
+    Like-wise torchvision.transforms class to apply 1D Gaussian filters on the spectral dimension
     """
 
     def __init__(self, bbl: np.ndarray, sigma: float):
@@ -39,10 +39,6 @@ class GaussianFilter(object):
         self.filter = SpectralWrapper(filters)
 
     def __call__(self, data) -> torch.Tensor:
-        """
-        :param sample:
-        :return:
-        """
         sample, gt = data
         return self.filter(sample), gt
 
@@ -73,8 +69,7 @@ class RandomFlip(object):
 
 class SpectralIndices(object):
     """
-    Class like a Transform object from Pytorch Torchvision
-    to compute spectral indices
+    Like-wise torchvision.transforms class to compute spectral indices
     """
 
     def __init__(self, wv: np.ndarray):
@@ -90,8 +85,8 @@ class SpectralIndices(object):
 
     def __call__(self, data):
         """
-        :param sample: input image [height, width, n_bands], extent, neighbours_extent
-        :return: features [height, width, n_spectral_indices], extent, neighbours_extent
+        :param data: input image [height, width, n_bands]
+        :return: features [height, width, n_spectral_indices]
         """
         sample, gt = data
         features = torch.zeros((sample.shape[0], sample.shape[1], sum([index.dim for index in self.spectral_indices])))
@@ -106,8 +101,7 @@ class SpectralIndices(object):
 
 class GaborFilters(object):
     """
-    Class like a Transform object from Pytorch Torchvision
-    to compute Gabor filters
+    Like-wise torchvision.transforms class to compute Gabor filters
     """
 
     def __init__(self, n_frequencies: int = 4, n_thetas: int = 6):
@@ -118,8 +112,8 @@ class GaborFilters(object):
 
     def __call__(self, data):
         """
-        :param sample: input image [height, width, n_bands], extent, neighbours_extent
-        :return: features [height, width, n_features], extent, neighbours_extent
+        :param data: input image [height, width, n_bands]
+        :return: features [height, width, n_frequencies x n_thetas]
         """
         sample, gt = data
         sample = sample.numpy()
@@ -139,8 +133,7 @@ class GaborFilters(object):
 
 class Stats(object):
     """
-    Class like a Transform object from Pytorch Torchvision
-    to compute statistics over a 2D image
+    Like-wise torchvision.transforms class to compute statistics (mean, standard deviation, first and third quartiles, first and last deciles, minimum and maximum) over a 2D image
     """
 
     def __init__(self):
@@ -169,10 +162,8 @@ class Stats(object):
 
 
 class Concat(transforms.Compose):
-    """Concatenate several transforms together. This transform does not support torchscript.
-
-    Args:
-        transforms_ (list of ``Transform`` objects): list of transforms to compose.
+    """
+    Concatenate several data transformations
     """
 
     def __init__(self, transforms_):
