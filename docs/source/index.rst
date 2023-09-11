@@ -11,6 +11,9 @@ TlseHypDataSet
 .. toctree::
     quickstart
     dataset
+    split
+    coreset
+    transforms
 
 
 

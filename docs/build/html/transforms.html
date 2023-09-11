@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transforms &mdash; TlseHypDataSet 0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Core-set selection" href="coreset.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            TlseHypDataSet
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="split.html">Spatially disjoint ground truth splits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coreset.html">Core-set selection</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Transforms</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">TlseHypDataSet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Transforms</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/transforms.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="transforms">
+<h1>Transforms<a class="headerlink" href="#transforms" title="Permalink to this headline"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="TlseHypDataSet.utils.transforms.GaborFilters">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">TlseHypDataSet.utils.transforms.</span></span><span class="sig-name descname"><span class="pre">GaborFilters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_frequencies</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_thetas</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TlseHypDataSet.utils.transforms.GaborFilters" title="Permalink to this definition"></a></dt>
+<dd><p>Like-wise torchvision.transforms class to compute Gabor filters</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="TlseHypDataSet.utils.transforms.SpectralIndices">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">TlseHypDataSet.utils.transforms.</span></span><span class="sig-name descname"><span class="pre">SpectralIndices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wv</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TlseHypDataSet.utils.transforms.SpectralIndices" title="Permalink to this definition"></a></dt>
+<dd><p>Like-wise torchvision.transforms class to compute spectral indices</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="TlseHypDataSet.utils.transforms.GaussianFilter">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">TlseHypDataSet.utils.transforms.</span></span><span class="sig-name descname"><span class="pre">GaussianFilter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bbl</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TlseHypDataSet.utils.transforms.GaussianFilter" title="Permalink to this definition"></a></dt>
+<dd><p>Like-wise torchvision.transforms class to apply 1D Gaussian filters on the spectral dimension</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="TlseHypDataSet.utils.transforms.Concat">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">TlseHypDataSet.utils.transforms.</span></span><span class="sig-name descname"><span class="pre">Concat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transforms_</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TlseHypDataSet.utils.transforms.Concat" title="Permalink to this definition"></a></dt>
+<dd><p>Concatenate several data transformations</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="TlseHypDataSet.utils.transforms.Stats">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">TlseHypDataSet.utils.transforms.</span></span><span class="sig-name descname"><span class="pre">Stats</span></span><a class="headerlink" href="#TlseHypDataSet.utils.transforms.Stats" title="Permalink to this definition"></a></dt>
+<dd><p>Like-wise torchvision.transforms class to compute statistics (mean, standard deviation, first and third quartiles, first and last deciles, minimum and maximum) over a 2D image</p>
+</dd></dl>
+
+<p>The example below shows how data transformations were combined to produce Fig. 5 in <a href="#id1"><span class="problematic" id="id2">`Toulouse Hyperspectral Data Set: analysis and study of self-supervision for spectral representation learning #&gt;`_</span></a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">tlse_hyp_data_set</span> <span class="kn">import</span> <span class="n">TlseHypDataSet</span>
+<span class="kn">from</span> <span class="nn">tlse_hyp_data_set.utils.transforms</span> <span class="kn">import</span> <span class="n">GaussianFilter</span><span class="p">,</span> <span class="n">SpectralIndices</span><span class="p">,</span>
+                                               <span class="n">GaborFilters</span><span class="p">,</span> <span class="n">Concat</span>
+
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">TlseHypDataSet</span><span class="p">(</span><span class="s1">&#39;/path/to/dataset/&#39;</span><span class="p">)</span>
+<span class="n">dataset</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+                <span class="n">GaussianFilter</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">bbl</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
+                <span class="n">Concat</span><span class="p">([</span>
+                    <span class="n">SpectralIndices</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">wv</span><span class="p">[</span><span class="n">dataset</span><span class="o">.</span><span class="n">bbl</span><span class="p">]),</span>
+                    <span class="n">GaborFilters</span><span class="p">()</span>
+                    <span class="p">]),</span>
+                <span class="n">Stats</span><span class="p">()</span>
+            <span class="p">])</span>
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="coreset.html" class="btn btn-neutral float-left" title="Core-set selection" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Romain Thoreau.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

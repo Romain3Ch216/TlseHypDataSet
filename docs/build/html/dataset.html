@@ -18,6 +18,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Spatially disjoint ground truth splits" href="split.html" />
     <link rel="prev" title="Getting started" href="quickstart.html" /> 
 </head>
 
@@ -43,6 +44,9 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Getting started</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="split.html">Spatially disjoint ground truth splits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coreset.html">Core-set selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transforms.html">Transforms</a></li>
 </ul>
 
         </div>
@@ -88,12 +92,27 @@
 </ul>
 </dd>
 </dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">TlseHypDataSet.tlse_hyp_data_set</span> <span class="kn">import</span> <span class="n">TlseHypDataSet</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">TlseHypDataSet</span><span class="p">(</span><span class="s1">&#39;/path/to/dataset&#39;</span><span class="p">,</span> <span class="n">pred_mode</span><span class="o">=</span><span class="s1">&#39;pixel&#39;</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sample</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sample</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([5, 5, 310]) # 310 is the number of spectral channels</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">label</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([1])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">TlseHypDataSet</span><span class="p">(</span><span class="s1">&#39;/path/to/dataset&#39;</span><span class="p">,</span> <span class="n">pred_mode</span><span class="o">=</span><span class="s1">&#39;patch&#39;</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sample</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sample</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([5, 5, 310]) # 310 is the number of spectral channels</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([5, 5])</span>
+</pre></div>
+</div>
 <dl class="py property">
 <dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.E_dif">
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">E_dif</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.E_dif" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Returns the diffuse irradiance at ground level</p>
+<dd class="field-odd"><p>The diffuse irradiance at ground level</p>
 </dd>
 </dl>
 </dd></dl>
@@ -103,7 +122,7 @@
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">E_dir</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.E_dir" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Returns the direct irradiance at ground level</p>
+<dd class="field-odd"><p>The direct irradiance at ground level</p>
 </dd>
 </dl>
 </dd></dl>
@@ -113,7 +132,7 @@
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">bands</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.bands" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Returns a list of usable band indices</p>
+<dd class="field-odd"><p>A list of usable band indices</p>
 </dd>
 </dl>
 </dd></dl>
@@ -123,7 +142,7 @@
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">colors</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.colors" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Returns a dict of class colors for land cover maps</p>
+<dd class="field-odd"><p>A dict of class colors for land cover maps</p>
 </dd>
 </dl>
 </dd></dl>
@@ -133,7 +152,7 @@
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">land_cover_nomenclature</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.land_cover_nomenclature" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Returns a dict with the land cover classes</p>
+<dd class="field-odd"><p>A dict with the land cover classes</p>
 </dd>
 </dl>
 </dd></dl>
@@ -143,7 +162,7 @@
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">land_use_nomenclature</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.land_use_nomenclature" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Returns a dict with the land use classes</p>
+<dd class="field-odd"><p>A dict with the land use classes</p>
 </dd>
 </dl>
 </dd></dl>
@@ -153,7 +172,7 @@
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">n_bands</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.n_bands" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Returns the number of usable spectral channels</p>
+<dd class="field-odd"><p>The number of usable spectral channels</p>
 </dd>
 </dl>
 </dd></dl>
@@ -163,7 +182,7 @@
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">permeability</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.permeability" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Returns a dict with the permeability of the land cover (0 = impermeable, 1 = permeable)</p>
+<dd class="field-odd"><p>A dict with the permeability of the land cover (0 = impermeable, 1 = permeable)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -175,11 +194,21 @@
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.standard_splits">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">standard_splits</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.standard_splits" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list of 8 spatially disjoint splits of the ground truth</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.theta">
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">theta</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.theta" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Returns the solar zenith angle</p>
+<dd class="field-odd"><p>The solar zenith angle</p>
 </dd>
 </dl>
 </dd></dl>
@@ -189,7 +218,7 @@
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">wv</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.wv" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>Returns a list of the spectral channels wavelengths</p>
+<dd class="field-odd"><p>A list of the spectral channels wavelengths</p>
 </dd>
 </dl>
 </dd></dl>
@@ -203,6 +232,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="quickstart.html" class="btn btn-neutral float-left" title="Getting started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="split.html" class="btn btn-neutral float-right" title="Spatially disjoint ground truth splits" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -64,6 +64,16 @@ def dataset_to_labels(dataset):
 
 
 def core_set_selection(dataset, budget=10, metric=None, dim_reduction='autoencoder', n_components=8):
+    """
+    Performs a class-wise core-set selection with a k-center greedy algorithm as implemented in https://github.com/PatrickZH/DeepCore
+
+    :param dataset: a torch.utils.data.Dataset object
+    :param budget: number of samples to select by class
+    :param metric: distance metric to use (a callable)
+    :param dim_reduction: method to represent the data in a lower dimensional space ('pca' or 'autoencoder')
+    :param n_components: dimension of the representation space
+    :return: A core-set selection of the data
+    """
     core_set = CoreSet(budget, metric, dim_reduction, n_components)
     file = 'core_set_selection.pkl'
     if file in os.listdir(os.path.join(dataset.root_path, 'outputs')):
@@ -77,6 +87,14 @@ def core_set_selection(dataset, budget=10, metric=None, dim_reduction='autoencod
 
 
 def random_selection(dataset, budget=10):
+    """
+    Performs a class-wise random selection
+
+    :param dataset: a torch.utils.data.Dataset object
+    :param budget: number of samples to select by class
+    :return: A random selection of the data
+    """
+
     random_selection_ = RandomSelection(budget)
     file = 'random_selection.pkl'
     if file in os.listdir(os.path.join(dataset.root_path, 'outputs')):
@@ -133,6 +151,7 @@ def k_center_greedy(data: np.ndarray,
                     device='cpu') -> np.ndarray:
     """
     Select a subset of the data according to the k-center greedy algorithm.
+    Modified from https://github.com/PatrickZH/DeepCore
 
     :param data: a (NxD) array where N is the number of samples and D is the data dimension
     :param budget: number of samples to select

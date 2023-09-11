@@ -15,9 +15,10 @@ Download the hyperspectral images in an :code:`images` folder:
    ├── images
        ├── TLS_1b_2021-06-15_10-41-20_reflectance_rect.bsq
        ├── TLS_1b_2021-06-15_10-41-20_reflectance_rect.hdr
+       ├── ...
 
 
-Load training data from a standard train / test split in a Pytorch data loader and start training:
+Load training data from a standard train / test split in a Pytorch data loader (see the :doc:`dataset` section for more details):
 
 .. code-block:: python
 

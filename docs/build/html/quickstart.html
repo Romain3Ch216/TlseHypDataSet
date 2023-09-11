@@ -44,6 +44,8 @@
               <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coreset.html">Core-set selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transforms.html">Transforms</a></li>
 </ul>
 
         </div>
@@ -81,9 +83,10 @@
 ├── images
     ├── TLS_1b_2021-06-15_10-41-20_reflectance_rect.bsq
     ├── TLS_1b_2021-06-15_10-41-20_reflectance_rect.hdr
+    ├── ...
 </pre></div>
 </div>
-<p>Load training data from a standard train / test split in a Pytorch data loader and start training:</p>
+<p>Load training data from a standard train / test split in a Pytorch data loader (see the <a class="reference internal" href="dataset.html"><span class="doc">Dataset</span></a> section for more details):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">tlse_hyp_data_set</span> <span class="kn">import</span> <span class="n">TlseHypDataSet</span>
 <span class="kn">from</span> <span class="nn">tlse_hyp_data_set.utils.dataset</span> <span class="kn">import</span> <span class="n">DisjointDataSplit</span>

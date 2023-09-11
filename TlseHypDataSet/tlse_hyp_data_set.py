@@ -134,11 +134,6 @@ class TlseHypDataSet(Dataset):
                 self.h5py_data = self.h5py_data[()]
                 self.h5py_labels = self.h5py_labels[()]
 
-        self.standard_splits = []
-        for split_id in range(1, 9):
-            split = pkl.load(pkg_resources.resource_stream('TlseHypDataSet.default_splits', 'split_{}.pkl'.format(split_id)))
-            self.standard_splits.append(split)
-
         self.test_patches = [
             {
                 'img_id': 1,
@@ -183,37 +178,48 @@ class TlseHypDataSet(Dataset):
         self.E_dif_ = torch.from_numpy(E_dif[self.bbl_]).float()
 
     @property
+    def standard_splits(self):
+        """
+        :return: A list of 8 spatially disjoint splits of the ground truth
+        """
+        standard_splits = []
+        for split_id in range(1, 9):
+            split = pkl.load(pkg_resources.resource_stream('TlseHypDataSet.default_splits', 'split_{}.pkl'.format(split_id)))
+            standard_splits.append(split)
+        return standard_splits
+
+    @property
     def theta(self):
         """
-        :return: Returns the solar zenith angle
+        :return: The solar zenith angle
         """
         return torch.tensor([self.theta_]).float()
 
     @property
     def E_dir(self):
         """
-        :return: Returns the direct irradiance at ground level
+        :return: The direct irradiance at ground level
         """
         return self.E_dir_
 
     @property
     def E_dif(self):
         """
-        :return: Returns the diffuse irradiance at ground level
+        :return: The diffuse irradiance at ground level
         """
         return self.E_dif_
 
     @property
     def wv(self):
         """
-        :return: Returns a list of the spectral channels wavelengths
+        :return: A list of the spectral channels wavelengths
         """
         return self.wv_
 
     @property
     def n_bands(self):
         """
-        :return: Returns the number of usable spectral channels
+        :return: The number of usable spectral channels
         """
         return self.n_bands_
 
@@ -232,7 +238,7 @@ class TlseHypDataSet(Dataset):
     @property
     def bands(self):
         """
-        :return: Returns a list of usable band indices
+        :return: A list of usable band indices
         """
         bands = tuple(np.where(self.bbl.astype(int) != 0)[0].astype(int) + 1)
         bands = [int(b) for b in bands]
@@ -241,7 +247,7 @@ class TlseHypDataSet(Dataset):
     @property
     def land_cover_nomenclature(self):
         """
-        :return: Returns a dict with the land cover classes
+        :return: A dict with the land cover classes
         """
         labels_ = {
             1: 'Orange tile',
@@ -283,7 +289,7 @@ class TlseHypDataSet(Dataset):
     @property
     def land_use_nomenclature(self):
         """
-        :return: Returns a dict with the land use classes
+        :return: A dict with the land use classes
         """
         labels_ = {
             1: 'Roads',
@@ -304,7 +310,7 @@ class TlseHypDataSet(Dataset):
     @property
     def permeability(self):
         """
-        :return: Returns a dict with the permeability of the land cover (0 = impermeable, 1 = permeable)
+        :return: A dict with the permeability of the land cover (0 = impermeable, 1 = permeable)
         """
         permeability_ = {}
         for class_id in self.land_cover_nomenclature:
@@ -317,7 +323,7 @@ class TlseHypDataSet(Dataset):
     @property
     def colors(self):
         """
-        :return: Returns a dict of class colors for land cover maps
+        :return: A dict of class colors for land cover maps
         """
         colors_ = sns.color_palette("hls", self.n_classes)
         return colors_

@@ -12,17 +12,17 @@ __all__ = [
 
 class DisjointDataSplit:
     """
-    A class to produce spatially disjoint train / test splits of the ground truth
+    A class to produce spatially disjoint train / test splits of the ground truth as described in ...
     """
     def __init__(self, dataset, splits=None, proportions=None, file=None, n_solutions=1000):
         """
-
-        :param dataset: a TlseHypDataSet object
-        :param splits: an array of size (1 x n_groups) which values are in {0, 1, 2}
-        (0: labeled set, 1: unlabeled set, 2: test set) (from the sat_split_solver function)
-        :param proportions: if the argument splits is not given, compute a split given the proportions
-        [p_labeled, p_val, p_test] with the sat_split_solver function
-        :param file: a file where a split is saved as pickle file
+        :param dataset: A TlseHypDataSet object
+        :param splits: An array of size (1 x n_groups) specifying the assignment of each group to a set
+        :param proportions: A list in the following format: [p_labeled, p_val and p_test].\
+         If the argument splits is not given, compute a split such that the proportions of pixels in\
+         the labeled training set, the validation set and the test set are greater than p_labeled, p_val and p_test,\
+          respectively.
+        :param file: Path to a file where a split is saved in a pickle format
         :param n_solutions: the maximum number of solutions for the SAT solver (used only with the proportions argument)
         """
         self.dataset = dataset
@@ -43,7 +43,7 @@ class DisjointDataSplit:
     @property
     def groups_(self):
         """
-        :return: dict with the group ids according to the set
+        :return: A dict whose keys are sets and values are lists with assigned groups
         """
         all_groups = np.unique(self.dataset.ground_truth['Group'])
         all_groups = all_groups[np.isnan(all_groups) == False]
@@ -58,7 +58,8 @@ class DisjointDataSplit:
     @property
     def sets_(self):
         """
-        :return: dict with the train / validation / ... sets as Dataset objects
+        :return: A dict whose keys are sets and values are labeled training, unlabeled training, validation and test\
+        Pytorch datasets
         """
         indices = self.indices_
         sets = {
@@ -73,7 +74,7 @@ class DisjointDataSplit:
     @property
     def indices_(self):
         """
-        :return: dict with the indices of samples in the Dataset acoording the set
+        :return: A dict whose keys are sets and values are sample indices in the TlseHypDataSet
         """
         def get_indices(groups_in_set, groups):
             indices = np.zeros_like(groups)
