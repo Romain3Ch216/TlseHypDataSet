@@ -27,6 +27,10 @@ setup(
                       'ortools',
                       'geopandas',
                       'torchvision',
-                      'matplotlib'
+                      'matplotlib',
+                      'seaborn',
+                      'h5py',
+                      'scipy',
+                      'scikit-image'
                       ]
 )
