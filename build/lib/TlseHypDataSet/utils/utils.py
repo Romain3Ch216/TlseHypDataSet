@@ -28,8 +28,13 @@ def tile_raster(input_file):
     query = "gdal_translate -co TILED=YES -co BLOCKXSIZE=256 -co BLOCKYSIZE=256 " + input_file + " " + out_file
     subprocess.call(query, shell=True)
 
-def convert_lc_map_to_ip_map(pred, permeability):
-    pred = np.array(pred).astype(int)
-    for class_id in np.unique(pred):
-        pred[pred == class_id] = permeability[class_id]
-    return pred
+
+def labels_to_labels(labels, keys_to_values):
+    """
+    Converts labels to other labels given a label-to-label dictionary
+    :param labels: An array of labels encoded by integers
+    :param keys_to_values: A dict of labels to labels relation
+    :return: An array of labels
+    """
+    new_labels = np.vectorize(keys_to_values.get)(labels)
+    return new_labels

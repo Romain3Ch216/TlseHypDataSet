@@ -7,15 +7,6 @@ Author: Romain Thoreau
 Author-email: romain.thoreau@onera.fr
 Description-Content-Type: text/x-rst
 License-File: LICENSE.txt
-Requires-Dist: numpy
-Requires-Dist: torch
-Requires-Dist: gdal
-Requires-Dist: rasterio
-Requires-Dist: protobuf
-Requires-Dist: ortools
-Requires-Dist: geopandas
-Requires-Dist: torchvision
-Requires-Dist: matplotlib
 
 Toulouse Hyperspectral Data Set
 ===============================
