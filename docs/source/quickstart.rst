@@ -18,7 +18,7 @@ Download the hyperspectral images at `www.toulouse-hyperspectral-data-set.com <h
        ├── ...
 
 
-The :code:`TlseHypDataSet` class has a :code:`standard_splits` attribute that contains 8 standard splits of the ground truth in a :code:`'train'` set, a :code:`'labeled_pool'`, an :code:`'unlabeled_pool'`, a :code:`'validation'` set and a :code:`'test'` set, as explained `here <#>`_. The following example shows how to load the training set of the first standard train / test split in a Pytorch data loader (see the :doc:`dataset` section for more details):
+The :code:`TlseHypDataSet` class has a :code:`standard_splits` attribute that contains 8 standard splits of the ground truth in a :code:`'train'` set, a :code:`'labeled_pool'`, an :code:`'unlabeled_pool'`, a :code:`'validation'` set and a :code:`'test'` set, as explained `here <#>`_. The following example shows how to load the training set of the first standard train / test split in a Pytorch data loader with the :code:`DisjointDataSplit` class (see the :doc:`dataset` and the :doc:`split` sections for more details):
 
 .. code-block:: python
 
@@ -41,3 +41,5 @@ The :code:`TlseHypDataSet` class has a :code:`standard_splits` attribute that co
         for samples, labels in train_loader:
             ...
 
+
+NB: at first use, the images and the ground truth will be processed and additional data will be saved in a :code:`rasters` folder.
