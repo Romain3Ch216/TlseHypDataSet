@@ -7,7 +7,7 @@ Install **TlseHypDataSet** with pip:
 
    $ pip install TlseHypDataSet
    
-Download the hyperspectral images in an :code:`images` folder: 
+Download the hyperspectral images at `www.toulouse-hyperspectral-data-set.com <www.toulouse-hyperspectral-data-set.com>`_ in an :code:`images` folder: 
 
 .. code-block:: 
 
@@ -18,7 +18,7 @@ Download the hyperspectral images in an :code:`images` folder:
        ├── ...
 
 
-Load training data from a standard train / test split in a Pytorch data loader (see the :doc:`dataset` section for more details):
+The :code:`TlseHypDataSet` class has a :code:`standard_splits` attribute that contains 8 standard splits of the ground truth in a :code:`'train'` set, a :code:`'labeled_pool'`, an :code:`'unlabeled_pool'`, a :code:`'validation'` set and a :code:`'test'` set, as explained `here <#>`_. The following example shows how to load the training set of the first standard train / test split in a Pytorch data loader (see the :doc:`dataset` section for more details):
 
 .. code-block:: python
 

@@ -44,8 +44,10 @@
               <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="split.html">Spatially disjoint ground truth splits</a></li>
 <li class="toctree-l1"><a class="reference internal" href="coreset.html">Core-set selection</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transforms.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
 </ul>
 
         </div>
@@ -75,10 +77,10 @@
   <section id="getting-started">
 <h1>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h1>
 <p>Install <strong>TlseHypDataSet</strong> with pip:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pip install TlseHypDataSet
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>TlseHypDataSet
 </pre></div>
 </div>
-<p>Download the hyperspectral images in an <code class="code docutils literal notranslate"><span class="pre">images</span></code> folder:</p>
+<p>Download the hyperspectral images at <a class="reference external" href="www.toulouse-hyperspectral-data-set.com">www.toulouse-hyperspectral-data-set.com</a> in an <code class="code docutils literal notranslate"><span class="pre">images</span></code> folder:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>/path/to/dataset/
 ├── images
     ├── TLS_1b_2021-06-15_10-41-20_reflectance_rect.bsq
@@ -86,7 +88,7 @@
     ├── ...
 </pre></div>
 </div>
-<p>Load training data from a standard train / test split in a Pytorch data loader (see the <a class="reference internal" href="dataset.html"><span class="doc">Dataset</span></a> section for more details):</p>
+<p>The <code class="code docutils literal notranslate"><span class="pre">TlseHypDataSet</span></code> class has a <code class="code docutils literal notranslate"><span class="pre">standard_splits</span></code> attribute that contains 8 standard splits of the ground truth in a <code class="code docutils literal notranslate"><span class="pre">'train'</span></code> set, a <code class="code docutils literal notranslate"><span class="pre">'labeled_pool'</span></code>, an <code class="code docutils literal notranslate"><span class="pre">'unlabeled_pool'</span></code>, a <code class="code docutils literal notranslate"><span class="pre">'validation'</span></code> set and a <code class="code docutils literal notranslate"><span class="pre">'test'</span></code> set, as explained <a class="reference external" href="#">here</a>. The following example shows how to load the training set of the first standard train / test split in a Pytorch data loader (see the <a class="reference internal" href="dataset.html"><span class="doc">Dataset</span></a> section for more details):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">tlse_hyp_data_set</span> <span class="kn">import</span> <span class="n">TlseHypDataSet</span>
 <span class="kn">from</span> <span class="nn">tlse_hyp_data_set.utils.dataset</span> <span class="kn">import</span> <span class="n">DisjointDataSplit</span>

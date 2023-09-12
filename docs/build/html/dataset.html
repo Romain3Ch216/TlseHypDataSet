@@ -47,6 +47,7 @@
 <li class="toctree-l1"><a class="reference internal" href="split.html">Spatially disjoint ground truth splits</a></li>
 <li class="toctree-l1"><a class="reference internal" href="coreset.html">Core-set selection</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transforms.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
 </ul>
 
         </div>
@@ -138,6 +139,16 @@
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.bottom_to_top">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">bottom_to_top</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.bottom_to_top" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict whose keys are bottom land cover classes and values are top land cover classes         in the hierarchical nomenclature</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.colors">
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">colors</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.colors" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
@@ -152,7 +163,17 @@
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">land_cover_nomenclature</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.land_cover_nomenclature" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A dict with the land cover classes</p>
+<dd class="field-odd"><p>A dict with the children land cover classes (bottom of the hierarchy)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.land_cover_nomenclature_top">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">land_cover_nomenclature_top</span></span><a class="headerlink" href="#TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet.land_cover_nomenclature_top" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict with the parent land cover classes (top of the hierarchy)</p>
 </dd>
 </dl>
 </dd></dl>

@@ -247,7 +247,7 @@ class TlseHypDataSet(Dataset):
     @property
     def land_cover_nomenclature(self):
         """
-        :return: A dict with the land cover classes
+        :return: A dict with the children land cover classes (bottom of the hierarchy)
         """
         labels_ = {
             1: 'Orange tile',
@@ -287,6 +287,45 @@ class TlseHypDataSet(Dataset):
         return labels_
 
     @property
+    def land_cover_nomenclature_top(self):
+        """
+        :return: A dict with the parent land cover classes (top of the hierarchy)
+        """
+        labels_ = {
+            1: 'Tile',
+            2: 'Slate',
+            3: 'Fiber cement',
+            4: 'Sheet metal',
+            5: 'Asphalt',
+            6: 'Cement',
+            7: 'Paving stone',
+            8: 'Clear plastic cover',
+            9: 'Synthetic material',
+            10: 'Vegetation',
+            11: 'Bare soil',
+            12: 'Gravels and rocks',
+            13: 'Porous concrete',
+            14: 'Water',
+            15: 'Crops'
+        }
+        return labels_
+
+    @property
+    def bottom_to_top(self):
+        """
+        :return: A dict whose keys are bottom land cover classes and values are top land cover classes\
+         in the hierarchical nomenclature
+        """
+        b2t = {
+            1: 1, 2: 1, 3: 2, 4: 3, 5: 3, 6: 4, 7: 4, 8: 5, 9: 5, 10: 5, 11: 5, 12: 5, 13: 6, 14: 7, 15: 7, 16: 8,
+            17: 9, 18: 9, 19: 10, 20: 10, 21: 10, 22: 11, 23: 12, 24: 12, 25: 13, 26: 13, 27: 14, 28: 14, 29: 14,
+            30: 15, 31: 15, 32: 15
+        }
+        return b2t
+
+
+
+    @property
     def land_use_nomenclature(self):
         """
         :return: A dict with the land use classes
@@ -306,6 +345,7 @@ class TlseHypDataSet(Dataset):
             12: 'Open areas'
         }
         return labels_
+
 
     @property
     def permeability(self):
