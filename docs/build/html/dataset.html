@@ -48,6 +48,7 @@
 <li class="toctree-l1"><a class="reference internal" href="coreset.html">Core-set selection</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transforms.html">Transforms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contribute</a></li>
 </ul>
 
         </div>
@@ -99,7 +100,7 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sample</span><span class="o">.</span><span class="n">shape</span>
 <span class="go">torch.Size([5, 5, 310]) # 310 is the number of spectral channels</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">label</span><span class="o">.</span><span class="n">shape</span>
-<span class="go">torch.Size([1])</span>
+<span class="go">torch.Size([])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">TlseHypDataSet</span><span class="p">(</span><span class="s1">&#39;/path/to/dataset&#39;</span><span class="p">,</span> <span class="n">pred_mode</span><span class="o">=</span><span class="s1">&#39;patch&#39;</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sample</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sample</span><span class="o">.</span><span class="n">shape</span>

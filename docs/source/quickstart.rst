@@ -23,13 +23,13 @@ The :code:`TlseHypDataSet` class has a :code:`standard_splits` attribute that co
 .. code-block:: python
 
     import torch
-    from tlse_hyp_data_set import TlseHypDataSet
-    from tlse_hyp_data_set.utils.dataset import DisjointDataSplit
+    from TlseHypDataSet.tlse_hyp_data_set import TlseHypDataSet
+    from TlseHypDataSet.utils.dataset import DisjointDataSplit
 
-    dataset = TlseHypDataSet('/path/to/dataset/')
+    dataset = TlseHypDataSet('/path/to/dataset/', pred_mode='pixel', patch_size=1)
     
     # Load the first standard ground truth split
-    ground_truth_split = DisjointDataSplit(dataset.standard_splits[0])
+    ground_truth_split = DisjointDataSplit(dataset, split=dataset.standard_splits[0])
     
     train_loader = torch.utils.data.DataLoader(
         ground_truth_split.sets_['train'], 

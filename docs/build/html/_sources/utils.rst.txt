@@ -6,7 +6,7 @@ The following example shows how to convert land cover labels in permeable / impe
 .. code-block:: 
 
     >>> from TlseHypDataSet.utils.utils import labels_to_labels
-    >>> from tlse_hyp_data_set import TlseHypDataSet
+    >>> from TlseHypDataSet.tlse_hyp_data_set import TlseHypDataSet
     >>> import numpy as np
     >>> dataset = TlseHypDataSet('/path/to/dataset', pred_mode='pixel', patch_size=1)
     >>> labels = np.array([[3, 6], [17, 20]])

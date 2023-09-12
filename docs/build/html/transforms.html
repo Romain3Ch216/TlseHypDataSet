@@ -48,6 +48,7 @@
 <li class="toctree-l1"><a class="reference internal" href="coreset.html">Core-set selection</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Transforms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contribute</a></li>
 </ul>
 
         </div>
@@ -108,11 +109,12 @@
 
 <p>The example below shows how data transformations were combined to qualitatively compare the Toulouse Hyperspectral Data Set to other data sets (see comparison at <a class="reference external" href="https://www.toulouse-hyperspectral-data-set.com">www.toulouse-hyperspectral-data-set.com</a>).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">tlse_hyp_data_set</span> <span class="kn">import</span> <span class="n">TlseHypDataSet</span>
-<span class="kn">from</span> <span class="nn">tlse_hyp_data_set.utils.transforms</span> <span class="kn">import</span> <span class="n">GaussianFilter</span><span class="p">,</span> <span class="n">SpectralIndices</span><span class="p">,</span>
-                                               <span class="n">GaborFilters</span><span class="p">,</span> <span class="n">Concat</span>
+<span class="kn">from</span> <span class="nn">torchvision</span> <span class="kn">import</span> <span class="n">transforms</span>
+<span class="kn">from</span> <span class="nn">TlseHypDataSet.tlse_hyp_data_set</span> <span class="kn">import</span> <span class="n">TlseHypDataSet</span>
+<span class="kn">from</span> <span class="nn">TlseHypDataSet.utils.transforms</span> <span class="kn">import</span> <span class="n">GaussianFilter</span><span class="p">,</span> <span class="n">SpectralIndices</span><span class="p">,</span>\
+                                            <span class="n">GaborFilters</span><span class="p">,</span> <span class="n">Concat</span><span class="p">,</span> <span class="n">Stats</span>
 
-<span class="n">dataset</span> <span class="o">=</span> <span class="n">TlseHypDataSet</span><span class="p">(</span><span class="s1">&#39;/path/to/dataset/&#39;</span><span class="p">)</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">TlseHypDataSet</span><span class="p">(</span><span class="s1">&#39;/path/to/dataset/&#39;</span><span class="p">,</span> <span class="n">pred_mode</span><span class="o">=</span><span class="s1">&#39;patch&#39;</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
 <span class="n">dataset</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
                 <span class="n">GaussianFilter</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">bbl</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span>
                 <span class="n">Concat</span><span class="p">([</span>
