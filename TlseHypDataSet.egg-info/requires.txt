@@ -1,6 +1,6 @@
 numpy
 torch
-gdal
+gdal==3.3.2
 rasterio
 protobuf
 ortools

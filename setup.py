@@ -21,7 +21,7 @@ setup(
     include_package_data=True,
     install_requires=['numpy',
                       'torch',
-                      'gdal',
+                      'gdal==3.3.2',
                       'rasterio',
                       'protobuf',
                       'ortools',

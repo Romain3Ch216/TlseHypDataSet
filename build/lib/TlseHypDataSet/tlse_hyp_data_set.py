@@ -26,28 +26,32 @@ __all__ = [
 
 class TlseHypDataSet(Dataset):
     """
-
+    A torch.utils.data.Dataset object to process the Toulouse Hyperspectral Data Set
     """
-
     def __init__(self, root_path: str,
                  pred_mode: str,
                  patch_size: int,
-                 padding: int = 0,
-                 low_level_only: bool = False,
+                 annotations: str = 'land_cover',
                  images: List = None,
-                 subset: float = 1,
                  in_h5py: bool = False,
                  data_on_gpu: bool = False
                  ):
+        """
+        :param root_path: path to the folder where the data is stored
+        :param pred_mode: 'pixel' for pixel-wise classification or 'patch' for patch segmentation
+        :param patch_size: size of the patch, i.e. gives (batch_size x patch_size x patch_size x n_bands) dimensional samples
+        :param annotations: 'land_cover', 'land_use' or 'both'
+        :param images: select a subset of image tiles by specifying tile index (in the following order [3d, 1c, 3a, 5c, 1d, 9c, 1b, 1e, 3e])
+        :param in_h5py: if True, save the data samples and labels in h5py files to speed up data reading
+        :param data_on_gpu: if True, store the whole data on the device (e.g. on the gpu)
+        """
 
         self.name = 'Toulouse'
         self.root_path = root_path
         self.pred_mode = pred_mode
         self.patch_size = patch_size
-        self.padding = padding
-        self.low_level_only = low_level_only
+        self.annotations = annotations
         self.images = images
-        self.subset = subset
         self.h5py = in_h5py
         self.transform = None
         self.saved_h5py = in_h5py
@@ -84,12 +88,12 @@ class TlseHypDataSet(Dataset):
         gt_rsrc = importlib_resources.files('TlseHypDataSet.ground_truth').joinpath('ground_truth.shp')
         self.ground_truth = gpd.read_file(gt_rsrc)
 
-        self.wv = None
-        self.bbl = None
-        self.E_dir = None
-        self.E_dif = None
-        self.theta = 22.12 * np.pi / 180
-        self.n_bands = None
+        self.wv_ = None
+        self.bbl_ = None
+        self.E_dir_ = None
+        self.E_dif_ = None
+        self.theta_ = 22.12 * np.pi / 180
+        self.n_bands_ = None
         self.samples = None
 
 
@@ -130,11 +134,6 @@ class TlseHypDataSet(Dataset):
                 self.h5py_data = self.h5py_data[()]
                 self.h5py_labels = self.h5py_labels[()]
 
-        self.standard_splits = []
-        for split_id in range(1, 9):
-            split = pkl.load(pkg_resources.resource_stream('TlseHypDataSet.default_splits', 'split_{}.pkl'.format(split_id)))
-            self.standard_splits.append(split)
-
         self.test_patches = [
             {
                 'img_id': 1,
@@ -155,52 +154,101 @@ class TlseHypDataSet(Dataset):
         ]
 
     def read_metadata(self):
-        self.wv = []
-        self.bbl = []
-        self.E_dir = []
-        self.E_dif = []
+        wv = []
+        bbl = []
+        E_dir = []
+        E_dif = []
 
         metadata = pkgutil.get_data(__name__, "metadata/tlse_metadata.txt")
         data_reader = csv.reader(metadata.decode('utf-8').splitlines(), delimiter=' ')
 
         for i, line in enumerate(data_reader):
             if i > 0:
-                self.wv.append(float(line[0]))
-                self.bbl.append(line[1] == 'True')
-                self.E_dir.append(float(line[2]))
-                self.E_dif.append(float(line[3]))
+                wv.append(float(line[0]))
+                bbl.append(line[1] == 'True')
+                E_dir.append(float(line[2]))
+                E_dif.append(float(line[3]))
 
-        self.bbl = np.array(self.bbl)
-        self.E_dir = np.array(self.E_dir)
-        self.E_dif = np.array(self.E_dif)
-        self.wv = np.array(self.wv)
-        self.n_bands = self.bbl.sum()
-        self.E_dir = torch.from_numpy(self.E_dir[self.bbl] / np.cos(self.theta)).float()
-        self.E_dif = torch.from_numpy(self.E_dif[self.bbl]).float()
-        self.theta = torch.tensor([self.theta]).float()
+        self.bbl_ = np.array(bbl)
+        E_dir = np.array(E_dir)
+        E_dif = np.array(E_dif)
+        self.wv_ = np.array(wv)
+        self.n_bands_ = self.bbl_.sum()
+        self.E_dir_ = torch.from_numpy(E_dir[self.bbl_] / np.cos(self.theta_)).float()
+        self.E_dif_ = torch.from_numpy(E_dif[self.bbl_]).float()
+
+    @property
+    def standard_splits(self):
+        """
+        :return: A list of 8 spatially disjoint splits of the ground truth
+        """
+        standard_splits = []
+        for split_id in range(1, 9):
+            split = pkl.load(pkg_resources.resource_stream('TlseHypDataSet.default_splits', 'split_{}.pkl'.format(split_id)))
+            standard_splits.append(split)
+        return standard_splits
+
+    @property
+    def theta(self):
+        """
+        :return: The solar zenith angle
+        """
+        return torch.tensor([self.theta_]).float()
+
+    @property
+    def E_dir(self):
+        """
+        :return: The direct irradiance at ground level
+        """
+        return self.E_dir_
+
+    @property
+    def E_dif(self):
+        """
+        :return: The diffuse irradiance at ground level
+        """
+        return self.E_dif_
+
+    @property
+    def wv(self):
+        """
+        :return: A list of the spectral channels wavelengths
+        """
+        return self.wv_
+
+    @property
+    def n_bands(self):
+        """
+        :return: The number of usable spectral channels
+        """
+        return self.n_bands_
 
     @property
     def classes(self):
-        gt = gpd.read_file(self.path_gt)
+        gt_rsrc = importlib_resources.files('TlseHypDataSet.ground_truth').joinpath('ground_truth.shp')
+        gt = gpd.read_file(gt_rsrc)
         classes = np.unique(gt['Material'])
         classes = classes[~np.isnan(classes)]
         return classes
 
     @property
     def n_classes(self):
-        return len(self.labels)
+        return len(self.land_cover_nomenclature)
 
     @property
     def bands(self):
         """
-        Extract the band numbers and the bad band list from the header of the first image.
+        :return: A list of usable band indices
         """
         bands = tuple(np.where(self.bbl.astype(int) != 0)[0].astype(int) + 1)
         bands = [int(b) for b in bands]
         return bands
 
     @property
-    def labels(self):
+    def land_cover_nomenclature(self):
+        """
+        :return: A dict with the children land cover classes (bottom of the hierarchy)
+        """
         labels_ = {
             1: 'Orange tile',
             2: 'Dark tile',
@@ -239,12 +287,73 @@ class TlseHypDataSet(Dataset):
         return labels_
 
     @property
+    def land_cover_nomenclature_top(self):
+        """
+        :return: A dict with the parent land cover classes (top of the hierarchy)
+        """
+        labels_ = {
+            1: 'Tile',
+            2: 'Slate',
+            3: 'Fiber cement',
+            4: 'Sheet metal',
+            5: 'Asphalt',
+            6: 'Cement',
+            7: 'Paving stone',
+            8: 'Clear plastic cover',
+            9: 'Synthetic material',
+            10: 'Vegetation',
+            11: 'Bare soil',
+            12: 'Gravels and rocks',
+            13: 'Porous concrete',
+            14: 'Water',
+            15: 'Crops'
+        }
+        return labels_
+
+    @property
+    def bottom_to_top(self):
+        """
+        :return: A dict whose keys are bottom land cover classes and values are top land cover classes\
+         in the hierarchical nomenclature
+        """
+        b2t = {
+            1: 1, 2: 1, 3: 2, 4: 3, 5: 3, 6: 4, 7: 4, 8: 5, 9: 5, 10: 5, 11: 5, 12: 5, 13: 6, 14: 7, 15: 7, 16: 8,
+            17: 9, 18: 9, 19: 10, 20: 10, 21: 10, 22: 11, 23: 12, 24: 12, 25: 13, 26: 13, 27: 14, 28: 14, 29: 14,
+            30: 15, 31: 15, 32: 15
+        }
+        return b2t
+
+
+
+    @property
+    def land_use_nomenclature(self):
+        """
+        :return: A dict with the land use classes
+        """
+        labels_ = {
+            1: 'Roads',
+            2: 'Railways',
+            3: 'Roofs',
+            4: 'Parking lots',
+            5: 'Building sites',
+            6: 'Sport facilities',
+            7: 'Lakes / rivers / harbors',
+            8: 'Swimming pools',
+            9: 'Forests',
+            10: 'Cultivated fields',
+            11: 'Boats',
+            12: 'Open areas'
+        }
+        return labels_
+
+
+    @property
     def permeability(self):
         """
-        0 is impermeable, 1 is permeable
+        :return: A dict with the permeability of the land cover (0 = impermeable, 1 = permeable)
         """
         permeability_ = {}
-        for class_id in self.labels:
+        for class_id in self.land_cover_nomenclature:
             if class_id <= 16:
                 permeability_[class_id] = 0
             else:
@@ -253,15 +362,14 @@ class TlseHypDataSet(Dataset):
 
     @property
     def colors(self):
+        """
+        :return: A dict of class colors for land cover maps
+        """
         colors_ = sns.color_palette("hls", self.n_classes)
         return colors_
 
     @property
     def areas(self):
-        """
-
-        :return:
-        """
         groups = np.unique(self.ground_truth['Group'])
         n_groups = len(groups)
         classes = np.unique(self.ground_truth['Material'])
@@ -294,7 +402,7 @@ class TlseHypDataSet(Dataset):
         """
         Rasterize the ground truth shapefile.
         """
-        gt = self.ground_truth  # gpd.read_file(os.path.join(dataset.root_path, 'GT', dataset.gt_path))
+        gt = self.ground_truth
         make_dirs([os.path.join(self.root_path, 'rasters')])
         paths = {}
 
@@ -447,11 +555,6 @@ class TlseHypDataSet(Dataset):
         self.samples[:, 4] = self.patch_size
         self.samples[:, 5] = self.patch_size
 
-        if self.subset < 1:
-            n_samples = int(self.subset * self.samples.shape[0])
-            subset = np.random.choice(np.arange(self.samples.shape[0]), size=n_samples, replace=False)
-            self.samples = self.samples[subset]
-
     def save_data_set(self):
         images = 'images_' + '_'.join([str(img_id) for img_id in self.images]) if self.images is not None else 'all_images'
         option = '_'
@@ -512,8 +615,14 @@ class TlseHypDataSet(Dataset):
             gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
             gt = np.concatenate(gt, axis=-1)
 
-            if self.low_level_only:
+            if self.annotations == 'land_cover':
                 gt = gt[:, :, 0]
+            elif self.annotations == 'land_use':
+                gt = gt[:, :, 1]
+            elif self.annotations == 'both':
+                pass
+            else:
+                raise NotImplementedError("annotations should be 'land_cover', 'land_use' or 'both'")
 
             gt = np.asarray(np.copy(gt), dtype="int64")
             gt = torch.from_numpy(gt)
