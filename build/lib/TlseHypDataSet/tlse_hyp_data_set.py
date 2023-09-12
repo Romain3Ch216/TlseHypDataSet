@@ -224,6 +224,13 @@ class TlseHypDataSet(Dataset):
         return self.n_bands_
 
     @property
+    def bbl(self):
+        """
+        :return: A list of bad bands (i.e. unusable spectral channels) encoded by zeros
+        """
+        return self.bbl_
+
+    @property
     def classes(self):
         gt_rsrc = importlib_resources.files('TlseHypDataSet.ground_truth').joinpath('ground_truth.shp')
         gt = gpd.read_file(gt_rsrc)

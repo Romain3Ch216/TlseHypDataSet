@@ -14,12 +14,12 @@ class DisjointDataSplit:
     """
     A class to produce spatially disjoint train / test splits of the ground truth as described in ...
     """
-    def __init__(self, dataset, splits=None, proportions=None, file=None, n_solutions=1000):
+    def __init__(self, dataset, split=None, proportions=None, file=None, n_solutions=1000):
         """
         :param dataset: A TlseHypDataSet object
-        :param splits: An array of size (1 x n_groups) specifying the assignment of each group to a set
+        :param split: An array of size (1 x n_groups) specifying the assignment of each group to a set
         :param proportions: A list in the following format: [p_labeled, p_val and p_test].\
-         If the argument splits is not given, compute a split such that the proportions of pixels in\
+         If the argument split is not given, compute a split such that the proportions of pixels in\
          the labeled training set, the validation set and the test set are greater than p_labeled, p_val and p_test,\
           respectively.
         :param file: Path to a file where a split is saved in a pickle format
@@ -27,18 +27,18 @@ class DisjointDataSplit:
         """
         self.dataset = dataset
         self.areas = self.dataset.areas
-        if splits is None and file is None:
-            self.splits_ = sat_split_solver(dataset,
+        if split is None and file is None:
+            self.split_ = sat_split_solver(dataset,
                                            p_labeled=proportions[0],
                                            p_val=proportions[1],
                                            p_test=proportions[2],
                                            n_solutions=n_solutions)
 
-        elif splits is None and file is not None:
+        elif split is None and file is not None:
             with open(file, 'rb') as f:
-                self.splits_ = pkl.load(f)
+                self.split_ = pkl.load(f)
         else:
-            self.splits_ = splits
+            self.split_ = split
 
     @property
     def groups_(self):
@@ -48,10 +48,10 @@ class DisjointDataSplit:
         all_groups = np.unique(self.dataset.ground_truth['Group'])
         all_groups = all_groups[np.isnan(all_groups) == False]
         groups = {
-            'labeled': all_groups[self.splits_ == 0],
-            'unlabeled': all_groups[self.splits_ == 1],
-            'validation': all_groups[self.splits_ == 2],
-            'test': all_groups[self.splits_ == 3]
+            'labeled': all_groups[self.split_ == 0],
+            'unlabeled': all_groups[self.split_ == 1],
+            'validation': all_groups[self.split_ == 2],
+            'test': all_groups[self.split_ == 3]
         }
         return groups
 
@@ -102,10 +102,10 @@ class DisjointDataSplit:
 
     @property
     def proportions_(self):
-        labeled_areas = np.sum(self.areas[self.splits_ == 0, :], axis=0) / np.sum(self.areas, axis=0)
-        unlabeled_areas = np.sum(self.areas[self.splits_ == 1, :], axis=0) / np.sum(self.areas, axis=0)
-        validation_areas = np.sum(self.areas[self.splits_ == 2, :], axis=0) / np.sum(self.areas, axis=0)
-        test_areas = np.sum(self.areas[self.splits_ == 3, :], axis=0) / np.sum(self.areas, axis=0)
+        labeled_areas = np.sum(self.areas[self.split_ == 0, :], axis=0) / np.sum(self.areas, axis=0)
+        unlabeled_areas = np.sum(self.areas[self.split_ == 1, :], axis=0) / np.sum(self.areas, axis=0)
+        validation_areas = np.sum(self.areas[self.split_ == 2, :], axis=0) / np.sum(self.areas, axis=0)
+        test_areas = np.sum(self.areas[self.split_ == 3, :], axis=0) / np.sum(self.areas, axis=0)
         proportions = {
             'train': labeled_areas,
             'labeled_pool': unlabeled_areas,
