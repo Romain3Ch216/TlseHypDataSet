@@ -7,7 +7,7 @@ Install **TlseHypDataSet** with pip:
 
    $ pip install TlseHypDataSet
    
-Download the hyperspectral images at `www.toulouse-hyperspectral-data-set.com <www.toulouse-hyperspectral-data-set.com>`_ in an :code:`images` folder: 
+Download the hyperspectral images at `www.toulouse-hyperspectral-data-set.com <https://www.toulouse-hyperspectral-data-set.com>`_ in an :code:`images` folder: 
 
 .. code-block:: 
 

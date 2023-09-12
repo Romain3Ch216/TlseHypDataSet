@@ -8,7 +8,7 @@ Transforms
 .. autoclass:: TlseHypDataSet.utils.transforms.Stats
 
 
-The example below shows how data transformations were combined to produce Fig. 5 in `Toulouse Hyperspectral Data Set: analysis and study of self-supervision for spectral representation learning <#>`_
+The example below shows how data transformations were combined to qualitatively compare the Toulouse Hyperspectral Data Set to other data sets (see comparison at `www.toulouse-hyperspectral-data-set.com <https://www.toulouse-hyperspectral-data-set.com>`_).
 
 
 .. code-block:: python
