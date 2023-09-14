@@ -8,17 +8,18 @@ Transforms
 .. autoclass:: TlseHypDataSet.utils.transforms.Stats
 
 
-The example below shows how data transformations were combined to produce Fig. 5 in `Toulouse Hyperspectral Data Set: analysis and study of self-supervision for spectral representation learning #>`_
+The example below shows how data transformations were combined to qualitatively compare the Toulouse Hyperspectral Data Set to other data sets (see comparison at `www.toulouse-hyperspectral-data-set.com <https://www.toulouse-hyperspectral-data-set.com>`_).
 
 
 .. code-block:: python
 
     import torch
-    from tlse_hyp_data_set import TlseHypDataSet
-    from tlse_hyp_data_set.utils.transforms import GaussianFilter, SpectralIndices, 
-                                                   GaborFilters, Concat
+    from torchvision import transforms
+    from TlseHypDataSet.tlse_hyp_data_set import TlseHypDataSet
+    from TlseHypDataSet.utils.transforms import GaussianFilter, SpectralIndices,\
+                                                GaborFilters, Concat, Stats
 
-    dataset = TlseHypDataSet('/path/to/dataset/')
+    dataset = TlseHypDataSet('/path/to/dataset/', pred_mode='patch', patch_size=64)
     dataset.transform = transforms.Compose([
                     GaussianFilter(dataset.bbl, sigma=1.5),
                     Concat([

@@ -12,7 +12,7 @@ Dataset
         >>> sample.shape
         torch.Size([5, 5, 310]) # 310 is the number of spectral channels
         >>> label.shape
-        torch.Size([1])
+        torch.Size([])
         >>> dataset = TlseHypDataSet('/path/to/dataset', pred_mode='patch', patch_size=5)
         >>> sample, labels = next(iter(dataset))
         >>> sample.shape

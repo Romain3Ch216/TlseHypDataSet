@@ -1,6 +1,6 @@
 LICENSE.txt
 MANIFEST.in
-README.md
+README.rst
 setup.py
 TlseHypDataSet/__init__.py
 TlseHypDataSet/other_data_sets.py

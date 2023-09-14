@@ -5,4 +5,11 @@ Summary: A Python package to use and analyse the Toulouse Hyperspectral Data Set
 Home-page: https://github.com/Romain3Ch216/TlseHypDataSet
 Author: Romain Thoreau
 Author-email: romain.thoreau@onera.fr
+Description-Content-Type: text/x-rst
 License-File: LICENSE.txt
+
+Toulouse Hyperspectral Data Set
+===============================
+
+**TlseHypDataSet** is a Python library to flexibly load `PyTorch <https://pytorch.org/>`_ datasets and run machine learning experiments on the `Toulouse Hyperspectral Data Set <www.toulouse-hyperspectral-data-set.com>`_. 
+

@@ -42,7 +42,9 @@ class TlseHypDataSet(Dataset):
         :param patch_size: size of the patch, i.e. gives (batch_size x patch_size x patch_size x n_bands) dimensional samples
         :param annotations: 'land_cover', 'land_use' or 'both'
         :param images: select a subset of image tiles by specifying tile index (in the following order [3d, 1c, 3a, 5c, 1d, 9c, 1b, 1e, 3e])
-        :param in_h5py: if True, save the data samples and labels in h5py files to speed up data reading
+        :param in_h5py: if True, save the data samples and labels in h5py files to speed up data reading. At first use, \
+        writing the data in the h5py file may take a very long time, but it might considerably decrease the reading \
+        time afterwards
         :param data_on_gpu: if True, store the whole data on the device (e.g. on the gpu)
         """
 
@@ -224,6 +226,13 @@ class TlseHypDataSet(Dataset):
         return self.n_bands_
 
     @property
+    def bbl(self):
+        """
+        :return: A list of bad bands (i.e. unusable spectral channels) encoded by zeros
+        """
+        return self.bbl_
+
+    @property
     def classes(self):
         gt_rsrc = importlib_resources.files('TlseHypDataSet.ground_truth').joinpath('ground_truth.shp')
         gt = gpd.read_file(gt_rsrc)
@@ -247,7 +256,7 @@ class TlseHypDataSet(Dataset):
     @property
     def land_cover_nomenclature(self):
         """
-        :return: A dict with the land cover classes
+        :return: A dict with the children land cover classes (bottom of the hierarchy)
         """
         labels_ = {
             1: 'Orange tile',
@@ -287,6 +296,45 @@ class TlseHypDataSet(Dataset):
         return labels_
 
     @property
+    def land_cover_nomenclature_top(self):
+        """
+        :return: A dict with the parent land cover classes (top of the hierarchy)
+        """
+        labels_ = {
+            1: 'Tile',
+            2: 'Slate',
+            3: 'Fiber cement',
+            4: 'Sheet metal',
+            5: 'Asphalt',
+            6: 'Cement',
+            7: 'Paving stone',
+            8: 'Clear plastic cover',
+            9: 'Synthetic material',
+            10: 'Vegetation',
+            11: 'Bare soil',
+            12: 'Gravels and rocks',
+            13: 'Porous concrete',
+            14: 'Water',
+            15: 'Crops'
+        }
+        return labels_
+
+    @property
+    def bottom_to_top(self):
+        """
+        :return: A dict whose keys are bottom land cover classes and values are top land cover classes\
+         in the hierarchical nomenclature
+        """
+        b2t = {
+            1: 1, 2: 1, 3: 2, 4: 3, 5: 3, 6: 4, 7: 4, 8: 5, 9: 5, 10: 5, 11: 5, 12: 5, 13: 6, 14: 7, 15: 7, 16: 8,
+            17: 9, 18: 9, 19: 10, 20: 10, 21: 10, 22: 11, 23: 12, 24: 12, 25: 13, 26: 13, 27: 14, 28: 14, 29: 14,
+            30: 15, 31: 15, 32: 15
+        }
+        return b2t
+
+
+
+    @property
     def land_use_nomenclature(self):
         """
         :return: A dict with the land use classes
@@ -306,6 +354,7 @@ class TlseHypDataSet(Dataset):
             12: 'Open areas'
         }
         return labels_
+
 
     @property
     def permeability(self):
