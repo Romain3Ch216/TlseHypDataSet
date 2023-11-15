@@ -1,15 +1,12 @@
-numpy==1.16.5
+numpy
 torch
 gdal==3.3.2
 rasterio
-protobuf>=4.23.3
-jupyter-core>=4.9.2
 ortools
 geopandas
 torchvision
-matplotlib>=3.3
+matplotlib
 seaborn
-pillow==9.0.1
 h5py
 scipy
 scikit-image
