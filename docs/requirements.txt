@@ -1,4 +1,4 @@
-gdal==3.3.2
+gdal>=3.3.2
 numpy
 torch
 rasterio

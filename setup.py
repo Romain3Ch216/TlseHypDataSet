@@ -19,7 +19,7 @@ setup(
               'TlseHypDataSet/ground_truth'],
     package_dir={'TlseHypDataSet': 'TlseHypDataSet'},
     include_package_data=True,
-    install_requires=['gdal==3.3.2',
+    install_requires=['gdal>=3.3.2',
                       'numpy',
                       'torch',
                       'gdal==3.3.2',
