@@ -69,3 +69,11 @@ If you use the **TlseHypDataSet** library, please cite the following two article
     keywords = {Land surface temperature, Spectral emissivity, Spectral reflectance, Air temperature, Airborne LiDAR, Atmospheric data, Urban area},
     }
 
+    @misc{thoreau2023toulouse,
+      title={Toulouse Hyperspectral Data Set: a benchmark data set to assess semi-supervised spectral representation learning and pixel-wise classification techniques}, 
+      author={Romain Thoreau and Laurent Risser and Véronique Achard and Béatrice Berthelot and Xavier Briottet},
+      year={2023},
+      eprint={2311.08863},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+     }
