@@ -1,8 +1,8 @@
+gdal>=3.3.2
 numpy
 torch
 gdal==3.3.2
 rasterio
-protobuf
 ortools
 geopandas
 torchvision
