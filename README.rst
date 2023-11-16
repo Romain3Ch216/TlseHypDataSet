@@ -1,7 +1,7 @@
 Toulouse Hyperspectral Data Set
 ===============================
 
-**TlseHypDataSet** is a Python library to flexibly load `PyTorch <https://pytorch.org/>`_ datasets and run machine learning experiments on the `Toulouse Hyperspectral Data Set <www.toulouse-hyperspectral-data-set.com>`_. 
+**TlseHypDataSet** is a Python library to flexibly load `PyTorch <https://pytorch.org/>`_ datasets and run machine learning experiments on the `Toulouse Hyperspectral Data Set <https://www.toulouse-hyperspectral-data-set.com/>`_. 
 
 Getting started
 ===============
@@ -12,7 +12,7 @@ Install **TlseHypDataSet** with pip:
 
    $ pip install TlseHypDataSet
    
-Download the hyperspectral images at `www.toulouse-hyperspectral-data-set.com <https://www.toulouse-hyperspectral-data-set.com>`_ in an :code:`images` folder: 
+Download the hyperspectral images from the `data catalogue <https://camcatt.sedoo.fr/catalogue/>`_ in an :code:`images` folder: 
 
 .. code-block:: 
 
@@ -69,3 +69,11 @@ If you use the **TlseHypDataSet** library, please cite the following two article
     keywords = {Land surface temperature, Spectral emissivity, Spectral reflectance, Air temperature, Airborne LiDAR, Atmospheric data, Urban area},
     }
 
+    @misc{thoreau2023toulouse,
+      title={Toulouse Hyperspectral Data Set: a benchmark data set to assess semi-supervised spectral representation learning and pixel-wise classification techniques}, 
+      author={Romain Thoreau and Laurent Risser and Véronique Achard and Béatrice Berthelot and Xavier Briottet},
+      year={2023},
+      eprint={2311.08863},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+     }
