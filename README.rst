@@ -1,7 +1,7 @@
 Toulouse Hyperspectral Data Set
 ===============================
 
-**TlseHypDataSet** is a Python library to flexibly load `PyTorch <https://pytorch.org/>`_ datasets and run machine learning experiments on the `Toulouse Hyperspectral Data Set <www.toulouse-hyperspectral-data-set.com>`_. 
+**TlseHypDataSet** is a Python library to flexibly load `PyTorch <https://pytorch.org/>`_ datasets and run machine learning experiments on the `Toulouse Hyperspectral Data Set <https://www.toulouse-hyperspectral-data-set.com/>`_. 
 
 Getting started
 ===============
@@ -12,7 +12,7 @@ Install **TlseHypDataSet** with pip:
 
    $ pip install TlseHypDataSet
    
-Download the hyperspectral images at `www.toulouse-hyperspectral-data-set.com <https://www.toulouse-hyperspectral-data-set.com>`_ in an :code:`images` folder: 
+Download the hyperspectral images from the `data catalogue <https://camcatt.sedoo.fr/catalogue/>`_ in an :code:`images` folder: 
 
 .. code-block:: 
 
