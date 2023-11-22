@@ -22,7 +22,6 @@ setup(
     install_requires=['gdal>=3.3.2',
                       'numpy',
                       'torch',
-                      'gdal==3.3.2',
                       'rasterio',
                       'ortools',
                       'geopandas',
