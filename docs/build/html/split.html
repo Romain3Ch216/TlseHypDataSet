@@ -48,6 +48,7 @@
 <li class="toctree-l1"><a class="reference internal" href="coreset.html">Core-set selection</a></li>
 <li class="toctree-l1"><a class="reference internal" href="transforms.html">Transforms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contribute.html">Contribute</a></li>
 </ul>
 
         </div>
@@ -77,53 +78,6 @@
   <section id="spatially-disjoint-ground-truth-splits">
 <h1>Spatially disjoint ground truth splits<a class="headerlink" href="#spatially-disjoint-ground-truth-splits" title="Permalink to this headline"></a></h1>
 <p>The ground truth of the Toulouse Hyperspectral Data Set is a shapefile that contains polygons associated to a land cover class. Spatially close polygons are grouped together, resulting in a few hundreds of groups. The split of the ground truth consists in assigning each group to a set (among the labeled training set, the unlabeled training set, the validation set and the test set) such that the proportions of pixels in every sets respect some conditions. Standard splits of the ground truth are provided with the TlseHypDataSet class described in the <a class="reference internal" href="dataset.html"><span class="doc">Dataset</span></a> section.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="TlseHypDataSet.utils.dataset.DisjointDataSplit">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">TlseHypDataSet.utils.dataset.</span></span><span class="sig-name descname"><span class="pre">DisjointDataSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">splits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proportions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_solutions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#TlseHypDataSet.utils.dataset.DisjointDataSplit" title="Permalink to this definition"></a></dt>
-<dd><p>A class to produce spatially disjoint train / test splits of the ground truth as described in …</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dataset</strong> – A TlseHypDataSet object</p></li>
-<li><p><strong>splits</strong> – An array of size (1 x n_groups) specifying the assignment of each group to a set</p></li>
-<li><p><strong>proportions</strong> – A list in the following format: [p_labeled, p_val and p_test].         If the argument splits is not given, compute a split such that the proportions of pixels in         the labeled training set, the validation set and the test set are greater than p_labeled, p_val and p_test,          respectively.</p></li>
-<li><p><strong>file</strong> – Path to a file where a split is saved in a pickle format</p></li>
-<li><p><strong>n_solutions</strong> – the maximum number of solutions for the SAT solver (used only with the proportions argument)</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py property">
-<dt class="sig sig-object py" id="TlseHypDataSet.utils.dataset.DisjointDataSplit.groups_">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">groups_</span></span><a class="headerlink" href="#TlseHypDataSet.utils.dataset.DisjointDataSplit.groups_" title="Permalink to this definition"></a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A dict whose keys are sets and values are lists with assigned groups</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="TlseHypDataSet.utils.dataset.DisjointDataSplit.indices_">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">indices_</span></span><a class="headerlink" href="#TlseHypDataSet.utils.dataset.DisjointDataSplit.indices_" title="Permalink to this definition"></a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A dict whose keys are sets and values are sample indices in the TlseHypDataSet</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="TlseHypDataSet.utils.dataset.DisjointDataSplit.sets_">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">sets_</span></span><a class="headerlink" href="#TlseHypDataSet.utils.dataset.DisjointDataSplit.sets_" title="Permalink to this definition"></a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A dict whose keys are sets and values are labeled training, unlabeled training, validation and test        Pytorch datasets</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
 </section>
 
 
