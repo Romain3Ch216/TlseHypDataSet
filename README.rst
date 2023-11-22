@@ -12,7 +12,7 @@ Install **TlseHypDataSet** with pip:
 
    $ pip install TlseHypDataSet
    
-Download the hyperspectral images from the `data catalogue <https://camcatt.sedoo.fr/catalogue/>`_ in an :code:`images` folder: 
+Download the hyperspectral images from the `data catalogue <https://camcatt.sedoo.fr/catalogue/>`_ in an `images` folder: 
 
 .. code-block:: 
 
@@ -23,7 +23,7 @@ Download the hyperspectral images from the `data catalogue <https://camcatt.sedo
        ├── ...
 
 
-The :code:`TlseHypDataSet` class has a :code:`standard_splits` attribute that contains 8 standard splits of the ground truth in a :code:`'train'` set, a :code:`'labeled_pool'`, an :code:`'unlabeled_pool'`, a :code:`'validation'` set and a :code:`'test'` set, as explained `here <#>`_. The following example shows how to load the training set of the first standard train / test split in a Pytorch data loader with the :code:`DisjointDataSplit` class (see the :doc:`dataset` and the :doc:`split` sections for more details):
+The `TlseHypDataSet` class has a `standard_splits` attribute that contains 8 standard splits of the ground truth in a `'train'` set, a `'labeled_pool'`, an `'unlabeled_pool'`, a `'validation'` set and a `'test'` set, as explained `here <#>`_. The following example shows how to load the training set of the first standard train / test split in a Pytorch data loader with the `DisjointDataSplit` class:
 
 .. code-block:: python
 
