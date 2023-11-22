@@ -1,9 +1,0 @@
-API
-===
-
-.. autosummary::
-   :toctree: generated
-
-   TlseHypDataSet
-   TlseHypDataSet.tlse_hyp_data_set
-   TlseHypDataSet.tlse_hyp_data_set.TlseHypDataSet
