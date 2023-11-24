@@ -10,3 +10,4 @@ seaborn
 h5py
 scipy
 scikit-image
+TlseHypDataSet==0.0.1
