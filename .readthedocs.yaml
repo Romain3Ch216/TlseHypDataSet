@@ -12,7 +12,9 @@ build:
   tools:
 
     python: "3.7"
-
+  commands:
+    - pip install pelican[markdown]
+    - pelican --settings docs/pelicanconf.py --output $READTHEDOCS_OUTPUT/html/ docs/
     # You can also specify other tool versions:
 
     # nodejs: "20"
@@ -24,8 +26,8 @@ build:
 
 # Build documentation in the "docs/" directory with Sphinx
 
-sphinx:
-  builder: dirhtml
+# sphinx:
+  # builder: dirhtml
   # configuration: docs/source/conf.py
 
   # You can configure Sphinx to use a different builder, for instance use the dirhtml builder for simpler URLs
