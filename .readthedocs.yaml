@@ -14,7 +14,9 @@ build:
     python: "3.7"
   commands:
     - pip install pelican[markdown]
-    - pelican --settings docs/pelicanconf.py --output docs/html/ docs/
+    - mkdir --parents _readthedocs/html/
+    - cp --recusrive pre_built_html/* _readthedocs/html/
+    # - pelican --settings docs/pelicanconf.py --output _readthedocs/html/ docs/
     # You can also specify other tool versions:
 
     # nodejs: "20"
