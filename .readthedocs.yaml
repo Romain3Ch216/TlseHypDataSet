@@ -15,7 +15,7 @@ build:
   commands:
     - pip install pelican[markdown]
     - mkdir --parents _readthedocs/html/
-    - cp --recusrive pre_built_html/* _readthedocs/html/
+    - cp --recursive pre_built_html/* _readthedocs/html/
     # - pelican --settings docs/pelicanconf.py --output _readthedocs/html/ docs/
     # You can also specify other tool versions:
 
