@@ -42,7 +42,9 @@ class TlseHypDataSet(Dataset):
         :param patch_size: size of the patch, i.e. gives (batch_size x patch_size x patch_size x n_bands) dimensional samples
         :param annotations: 'land_cover', 'land_use' or 'both'
         :param images: select a subset of image tiles by specifying tile index (in the following order [3d, 1c, 3a, 5c, 1d, 9c, 1b, 1e, 3e])
-        :param in_h5py: if True, save the data samples and labels in h5py files to speed up data reading
+        :param in_h5py: if True, save the data samples and labels in h5py files to speed up data reading. At first use, \
+        writing the data in the h5py file may take a very long time, but it might considerably decrease the reading \
+        time afterwards
         :param data_on_gpu: if True, store the whole data on the device (e.g. on the gpu)
         """
 
