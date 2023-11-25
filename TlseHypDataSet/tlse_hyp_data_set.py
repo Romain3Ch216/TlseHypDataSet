@@ -613,6 +613,7 @@ class TlseHypDataSet(Dataset):
             sample = self.image_rasters[image_id].read(self.bands,
                                                        window=Window(col_offset, row_offset, col_size, row_size))
 
+            import pdb; pdb.set_trace()
             sample = np.transpose(sample, (1, 2, 0))
             sample = sample / 10 ** 4
             sample = np.asarray(np.copy(sample), dtype="float32")
