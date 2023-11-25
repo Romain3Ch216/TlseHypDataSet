@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: TlseHypDataSet
-Version: 0.0.2
+Version: 0.0.3
 Summary: A Python library to flexibly load the Toulouse Hyperspectral Data Set
 Home-page: https://github.com/Romain3Ch216/TlseHypDataSet
 Author: Romain Thoreau
@@ -27,13 +27,10 @@ Toulouse Hyperspectral Data Set
 Getting started
 ===============
 
-The **TlseHypDataSet** is compatible with Python=3.8 and depends on `GDAL <https://pypi.org/project/GDAL/>`_ which is recommended to be installed with conda:
+**TlseHypDataSet** is compatible with Python>=3.8,<3.1:
 
 .. code-block:: console
 
-   $ conda create --name tlse python=3.8
-   $ conda activate tlse
-   $ conda install -c conda-forge gdal
    $ pip install TlseHypDataSet
    
 Download the hyperspectral images from the `data catalogue <https://camcatt.sedoo.fr/catalogue/>`_ in an `images` folder: 
