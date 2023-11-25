@@ -6,7 +6,7 @@ long_description = (this_directory / "README.rst").read_text()
 
 setup(
     name='TlseHypDataSet',
-    version='0.0.2',
+    version='0.0.3',
     description='A Python library to flexibly load the Toulouse Hyperspectral Data Set',
     long_description=long_description,
     long_description_content_type='text/x-rst',
