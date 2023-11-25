@@ -1,4 +1,3 @@
-import pdb
 from typing import List
 import torch
 from torch.utils.data import Dataset
@@ -7,8 +6,8 @@ import geopandas as gpd
 from geopandas import GeoDataFrame
 import numpy as np
 import pickle as pkl
-from osgeo import gdal
 import rasterio
+from rasterio.windows import Window
 from rasterio.features import rasterize
 from TlseHypDataSet.utils.utils import make_dirs, data_in_folder, tile_raster
 import pkgutil
@@ -103,21 +102,21 @@ class TlseHypDataSet(Dataset):
         self.read_metadata()
 
         print('Open images...')
-        self.image_rasters = [gdal.Open(os.path.join(self.root_path, 'images', image_path + '.tif'), gdal.GA_ReadOnly)
+        self.image_rasters = [rasterio.open(os.path.join(self.root_path, 'images', image_path + '.tif'))
                               for image_path in np.array(self.images_path)[np.array(self.images)]]
 
         if 'zero_masks.pkl' in os.listdir(os.path.join(self.root_path, 'inputs')):
             with open(os.path.join(self.root_path, 'inputs', 'zero_masks.pkl'), 'rb') as f:
                 self.zero_masks = pkl.load(f)
         else:
-            self.zero_masks = [np.ones((img.RasterYSize, img.RasterXSize)) for img in self.image_rasters]
+            self.zero_masks = [np.ones((img.height, img.width)) for img in self.image_rasters]
 
         print('Rasterize ground truth...')
         self.gts_path = self.rasterize_gt_shapefile()
 
         print('Open ground truth rasters...')
         self.gt_rasters = dict(
-            (att, [(self.images[i], gdal.Open(gt_path[:-3] + 'tif', gdal.GA_ReadOnly)) for i, gt_path in enumerate(self.gts_path[att])])
+            (att, [(self.images[i], rasterio.open(gt_path[:-3] + 'tif')) for i, gt_path in enumerate(self.gts_path[att])])
             for att in self.gts_path)
 
         if pred_mode == 'patch':
@@ -501,9 +500,9 @@ class TlseHypDataSet(Dataset):
     def compute_patches(self):
         group_list, patches, img_list = [], [], []
         for i, ((img_id, gt), (_, groups)) in enumerate(zip(self.gt_rasters['Material'], self.gt_rasters['Group'])):
-            gt = gt.ReadAsArray(gdal.GA_ReadOnly)
+            gt = gt.read()
             zero_mask_ = self.zero_masks[i]
-            groups = groups.ReadAsArray(gdal.GA_ReadOnly)
+            groups = groups.read()
             nx_patches = gt.shape[0] // self.patch_size
             ny_patches = gt.shape[1] // self.patch_size
             for k in range(nx_patches):
@@ -537,8 +536,8 @@ class TlseHypDataSet(Dataset):
     def compute_pixels(self):
         group_list, col_list, row_list, img_list = [], [], [], []
         for i, ((img_id, gt), (_, groups)) in enumerate(zip(self.gt_rasters['Material'], self.gt_rasters['Group'])):
-            gt = gt.ReadAsArray(gdal.GA_ReadOnly)
-            groups = groups.ReadAsArray(gdal.GA_ReadOnly)
+            gt = gt.read()
+            groups = groups.read()
             coords = np.where((gt != 0) * (gt != 40))
             groups = groups[coords]
             img_list.extend([i] * len(groups))
@@ -611,15 +610,15 @@ class TlseHypDataSet(Dataset):
             coordinates = self.samples[i, 2:]
             col_offset, row_offset, col_size, row_size = [int(x) for x in coordinates]
 
-            sample = self.image_rasters[image_id].ReadAsArray(col_offset, row_offset, col_size, row_size,
-                                                              band_list=self.bands)
+            sample = self.image_rasters[image_id].read(self.bands,
+                                                       window=Window(col_offset, row_offset, col_size, row_size))
 
             sample = np.transpose(sample, (1, 2, 0))
             sample = sample / 10 ** 4
             sample = np.asarray(np.copy(sample), dtype="float32")
             sample = torch.from_numpy(sample)
 
-            gt = [self.gt_rasters[att][image_id][1].ReadAsArray(col_offset, row_offset, col_size, row_size)
+            gt = [self.gt_rasters[att][image_id][1].read(window=Window(col_offset, row_offset, col_size, row_size))
                   for att in ['Material', 'Abstract']]
             gt = [x.reshape(x.shape[0], x.shape[1], -1) for x in gt]
             gt = np.concatenate(gt, axis=-1)
