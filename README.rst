@@ -6,14 +6,14 @@ Toulouse Hyperspectral Data Set
 Getting started
 ===============
 
-Installation from pip will be soon available.
-
-For now, download the **TlseHypDataSet** repository and run the following:
+The **TlseHypDataSet** is compatible with Python=3.8 and depends on `GDAL <https://pypi.org/project/GDAL/>`_ which is recommended to be installed with conda:
 
 .. code-block:: console
 
-   $ cd TlseHypDataSet
-   $ pip install .
+   $ conda create --name tlse python=3.8
+   $ conda activate tlse
+   $ conda install -c conda-forge gdal
+   $ pip install TlseHypDataSet
    
 Download the hyperspectral images from the `data catalogue <https://camcatt.sedoo.fr/catalogue/>`_ in an `images` folder: 
 
