@@ -401,6 +401,7 @@ class TlseHypDataSet(Dataset):
             path = os.path.join(self.root_path, 'rasters', 'gt_Material_{}.bsq'.format(gt_id))
             gt = rasterio.open(path)
             gt = gt.read()
+            gt = gt[0]
             for class_id in np.unique(gt):
                 if class_id != 0 and class_id != 40:
                     n_samples_[class_id-1] += np.sum(gt == class_id)
@@ -501,8 +502,10 @@ class TlseHypDataSet(Dataset):
         group_list, patches, img_list = [], [], []
         for i, ((img_id, gt), (_, groups)) in enumerate(zip(self.gt_rasters['Material'], self.gt_rasters['Group'])):
             gt = gt.read()
+            gt = gt[0]
             zero_mask_ = self.zero_masks[i]
             groups = groups.read()
+            groups = groups[0]
             nx_patches = gt.shape[0] // self.patch_size
             ny_patches = gt.shape[1] // self.patch_size
             for k in range(nx_patches):
@@ -537,7 +540,9 @@ class TlseHypDataSet(Dataset):
         group_list, col_list, row_list, img_list = [], [], [], []
         for i, ((img_id, gt), (_, groups)) in enumerate(zip(self.gt_rasters['Material'], self.gt_rasters['Group'])):
             gt = gt.read()
+            gt = gt[0]
             groups = groups.read()
+            groups = groups[0]
             coords = np.where((gt != 0) * (gt != 40))
             groups = groups[coords]
             img_list.extend([i] * len(groups))
@@ -613,7 +618,6 @@ class TlseHypDataSet(Dataset):
             sample = self.image_rasters[image_id].read(self.bands,
                                                        window=Window(col_offset, row_offset, col_size, row_size))
 
-            import pdb; pdb.set_trace()
             sample = np.transpose(sample, (1, 2, 0))
             sample = sample / 10 ** 4
             sample = np.asarray(np.copy(sample), dtype="float32")
