@@ -19,6 +19,8 @@ Download the hyperspectral images at `www.toulouse-hyperspectral-data-set.com <h
        ├── TLS_1b_2021-06-15_10-41-20_reflectance_rect.hdr
        ├── ...
 
+Then, specify the 'patch' mode and the desired patch size:
+
 .. code-block:: python
 
     from TlseHypDataSet.tlse_hyp_data_set import TlseHypDataSet
@@ -27,17 +29,27 @@ Download the hyperspectral images at `www.toulouse-hyperspectral-data-set.com <h
 
 **Option 2: working with 1D reflectance spectra**
 
-Download the 1D hyperspectral data at `huggingface.co/datasets/Romain3Ch216/TlseHypDataSet <https://huggingface.co/datasets/Romain3Ch216/TlseHypDataSet>`.
+Download the 1D hyperspectral data at `huggingface.co/datasets/Romain3Ch216/TlseHypDataSet <https://huggingface.co/datasets/Romain3Ch216/TlseHypDataSet>`_ in a :code:`inputs` folder:
+
+.. code-block:: 
+
+   /path/to/dataset/
+   ├── inputs
+       ├── areas.npy
+       ├── data_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5
+       ├── ...
+
+Then, specify the 'pixel' mode:
 
 .. code-block:: python
 
     from TlseHypDataSet.tlse_hyp_data_set import TlseHypDataSet
 
-    dataset = TlseHypDataSet('/path/to/dataset/', pred_mode='pixel', patch_size=1, pixel_data_path='/path/to/1dData/')
+    dataset = TlseHypDataSet('/path/to/dataset/', pred_mode='pixel', patch_size=1)
 
 **Loading the ground truth**
 
-The :code:`TlseHypDataSet` class has a :code:`standard_splits` attribute that contains 8 standard splits of the ground truth in a :code:`'train'` set, a :code:`'labeled_pool'`, an :code:`'unlabeled_pool'`, a :code:`'validation'` set and a :code:`'test'` set, as explained `here <https://arxiv.org/pdf/2311.08863.pdf>`_. The following example shows how to load the training set of the first standard train / test split in a Pytorch data loader with the :code:`DisjointDataSplit` class (see the :doc:`dataset` and the :doc:`split` sections for more details):
+The :code:`TlseHypDataSet` class has a :code:`standard_splits` attribute that contains 8 standard splits of the ground truth in a :code:`'train'` set, a :code:`'labeled_pool'`, an :code:`'unlabeled_pool'`, a :code:`'validation'` set and a :code:`'test'` set, as explained `here <https://arxiv.org/pdf/2311.08863.pdf>`_. The following example shows how to load the training set of the first standard train / test split in a Pytorch data loader with the :code:`DisjointDataSplit` class (see the `dataset` and the `split` sections for more details):
 
 .. code-block:: python
 
