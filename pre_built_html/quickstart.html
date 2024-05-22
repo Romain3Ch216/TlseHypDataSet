@@ -81,24 +81,22 @@
 <section id="getting-started">
   <h1>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h1>
   <p>Install <strong>TlseHypDataSet</strong> (compatible with Python&gt;=3.8,&lt;3.1) with pip:</p>
-  <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>TlseHypDataSet
-  </pre></div>
+  <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>TlseHypDataSet</pre></div>
   </div>
 <p><strong>Option 1: working with 3D patches</strong></p>
-<p>Download the hyperspectral images at <a class="reference external" href="https://www.toulouse-hyperspectral-data-set.com">www.toulouse-hyperspectral-data-set.com</a> in an <code>images</code> folder:</p>
-<pre class="code literal-block">
-/path/to/dataset/
+<p>Download the hyperspectral images at <a class="reference external" href="https://www.toulouse-hyperspectral-data-set.com">www.toulouse-hyperspectral-data-set.com</a> in an <code class="code docutils literal notranslate"><span class="pre">images</span></code> folder:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>/path/to/dataset/
 ├── images
     ├── TLS_1b_2021-06-15_10-41-20_reflectance_rect.bsq
     ├── TLS_1b_2021-06-15_10-41-20_reflectance_rect.hdr
     ├── ...
-</pre>
+</pre></div>
+</div>
 <p>Then, specify the 'patch' mode and the desired patch size:</p>
-<pre class="code python literal-block">
-<span class="keyword namespace">from</span> <span class="name namespace">TlseHypDataSet.tlse_hyp_data_set</span> <span class="keyword namespace">import</span> <span class="name">TlseHypDataSet</span><span class="whitespace">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">TlseHypDataSet.tlse_hyp_data_set</span> <span class="kn">import</span> <span class="n">TlseHypDataSet</span>
 
-</span><span class="name">dataset</span> <span class="operator">=</span> <span class="name">TlseHypDataSet</span><span class="punctuation">(</span><span class="literal string single">'/path/to/dataset/'</span><span class="punctuation">,</span> <span class="name">pred_mode</span><span class="operator">=</span><span class="literal string single">'patch'</span><span class="punctuation">,</span> <span class="name">patch_size</span><span class="operator">=</span><span class="literal number integer">64</span><span class="punctuation">)</span>
-</pre>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">TlseHypDataSet</span><span class="p">(</span><span class="s1">&#39;/path/to/dataset/&#39;</span><span class="p">,</span> <span class="n">pred_mode</span><span class="o">=</span><span class="s1">&#39;patch&#39;</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+</pre></div></div>
 <p><strong>Option 2: working with 1D reflectance spectra</strong></p>
 <p>Download the 1D hyperspectral data at <a class="reference external" href="https://huggingface.co/datasets/Romain3Ch216/TlseHypDataSet">huggingface.co/datasets/Romain3Ch216/TlseHypDataSet</a> in an <code>inputs</code> folder:</p>
 <pre class="code literal-block">
@@ -109,33 +107,32 @@
     ├── ...
 </pre>
 <p>Then, specify the 'pixel' mode:</p>
-<pre class="code python literal-block">
-<span class="keyword namespace">from</span> <span class="name namespace">TlseHypDataSet.tlse_hyp_data_set</span> <span class="keyword namespace">import</span> <span class="name">TlseHypDataSet</span><span class="whitespace">
-
-</span><span class="name">dataset</span> <span class="operator">=</span> <span class="name">TlseHypDataSet</span><span class="punctuation">(</span><span class="literal string single">'/path/to/dataset/'</span><span class="punctuation">,</span> <span class="name">pred_mode</span><span class="operator">=</span><span class="literal string single">'pixel'</span><span class="punctuation">,</span> <span class="name">patch_size</span><span class="operator">=</span><span class="literal number integer">1</span><span class="punctuation">)</span>
-</pre>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">TlseHypDataSet.tlse_hyp_data_set</span> <span class="kn">import</span> <span class="n">TlseHypDataSet</span>
+  
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">TlseHypDataSet</span><span class="p">(</span><span class="s1">&#39;/path/to/dataset/&#39;</span><span class="p">,</span> <span class="n">pred_mode</span><span class="o">=</span><span class="s1">&#39;pixel&#39;</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div></div>
 <p><strong>Loading the ground truth</strong></p>
-<p>The <code>TlseHypDataSet</code> class has a <code>standard_splits</code> attribute that contains 8 standard splits of the ground truth in a <code>'train'</code> set, a <code>'labeled_pool'</code>, an <code>'unlabeled_pool'</code>, a <code>'validation'</code> set and a <code>'test'</code> set, as explained <a class="reference external" href="https://arxiv.org/pdf/2311.08863.pdf">here</a>. The following example shows how to load the training set of the first standard train / test split in a Pytorch data loader with the <code>DisjointDataSplit</code> class (see the <cite>dataset</cite> and the <cite>split</cite> sections for more details):</p>
-<pre class="code python literal-block">
-<span class="keyword namespace">import</span> <span class="name namespace">torch</span><span class="whitespace">
-</span><span class="keyword namespace">from</span> <span class="name namespace">TlseHypDataSet.tlse_hyp_data_set</span> <span class="keyword namespace">import</span> <span class="name">TlseHypDataSet</span><span class="whitespace">
-</span><span class="keyword namespace">from</span> <span class="name namespace">TlseHypDataSet.utils.dataset</span> <span class="keyword namespace">import</span> <span class="name">DisjointDataSplit</span><span class="whitespace">
+<p>The <code class="code docutils literal notranslate"><span class="pre">TlseHypDataSet</span></code> class has a <code class="code docutils literal notranslate"><span class="pre">standard_splits</span></code> attribute that contains 8 standard splits of the ground truth in a <code class="code docutils literal notranslate"><span class="pre">'train'</span></code> set, a <code class="code docutils literal notranslate"><span class="pre">'labeled_pool'</span></code>, an <code class="code docutils literal notranslate"><span class="pre">'unlabeled_pool'</span></code>, a <code class="code docutils literal notranslate"><span class="pre">'validation'</span></code> set and a <code class="code docutils literal notranslate"><span class="pre">'test'</span></code> set, as explained <a class="reference external" href="https://arxiv.org/pdf/2311.08863.pdf">here</a>. The following example shows how to load the training set of the first standard train / test split in a Pytorch data loader with the <code class="code docutils literal notranslate"><span class="pre">DisjointDataSplit</span></code> class (see the <a class="reference internal" href="dataset.html"><span class="doc">Dataset</span></a> and the <a class="reference internal" href="split.html"><span class="doc">Spatially disjoint ground truth splits</span></a> sections for more details):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">TlseHypDataSet.tlse_hyp_data_set</span> <span class="kn">import</span> <span class="n">TlseHypDataSet</span>
+<span class="kn">from</span> <span class="nn">TlseHypDataSet.utils.dataset</span> <span class="kn">import</span> <span class="n">DisjointDataSplit</span>
 
-</span><span class="name">dataset</span> <span class="operator">=</span> <span class="name">TlseHypDataSet</span><span class="punctuation">(</span><span class="literal string single">'/path/to/dataset/'</span><span class="punctuation">,</span> <span class="name">pred_mode</span><span class="operator">=</span><span class="literal string single">'pixel'</span><span class="punctuation">,</span> <span class="name">patch_size</span><span class="operator">=</span><span class="literal number integer">1</span><span class="punctuation">)</span><span class="whitespace">
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">TlseHypDataSet</span><span class="p">(</span><span class="s1">&#39;/path/to/dataset/&#39;</span><span class="p">,</span> <span class="n">pred_mode</span><span class="o">=</span><span class="s1">&#39;pixel&#39;</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-</span><span class="comment single"># Load the first standard ground truth split</span><span class="whitespace">
-</span><span class="name">ground_truth_split</span> <span class="operator">=</span> <span class="name">DisjointDataSplit</span><span class="punctuation">(</span><span class="name">dataset</span><span class="punctuation">,</span> <span class="name">split</span><span class="operator">=</span><span class="name">dataset</span><span class="operator">.</span><span class="name">standard_splits</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">])</span><span class="whitespace">
+<span class="c1"># Load the first standard ground truth split</span>
+<span class="n">ground_truth_split</span> <span class="o">=</span> <span class="n">DisjointDataSplit</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">standard_splits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
-</span><span class="name">train_loader</span> <span class="operator">=</span> <span class="name">torch</span><span class="operator">.</span><span class="name">utils</span><span class="operator">.</span><span class="name">data</span><span class="operator">.</span><span class="name">DataLoader</span><span class="punctuation">(</span><span class="whitespace">
-</span>    <span class="name">ground_truth_split</span><span class="operator">.</span><span class="name">sets_</span><span class="punctuation">[</span><span class="literal string single">'train'</span><span class="punctuation">],</span><span class="whitespace">
-</span>    <span class="name">shuffle</span><span class="operator">=</span><span class="keyword constant">True</span><span class="punctuation">,</span><span class="whitespace">
-</span>    <span class="name">batch_size</span><span class="operator">=</span><span class="literal number integer">1024</span><span class="whitespace">
-</span>    <span class="punctuation">)</span><span class="whitespace">
+<span class="n">train_loader</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span>
+    <span class="n">ground_truth_split</span><span class="o">.</span><span class="n">sets_</span><span class="p">[</span><span class="s1">&#39;train&#39;</span><span class="p">],</span>
+    <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span>
+    <span class="p">)</span>
 
-</span><span class="keyword">for</span> <span class="name">epoch</span> <span class="operator word">in</span> <span class="name builtin">range</span><span class="punctuation">(</span><span class="literal number integer">100</span><span class="punctuation">):</span><span class="whitespace">
-</span>    <span class="keyword">for</span> <span class="name">samples</span><span class="punctuation">,</span> <span class="name">labels</span> <span class="operator word">in</span> <span class="name">train_loader</span><span class="punctuation">:</span><span class="whitespace">
-</span>        <span class="operator">...</span>
-</pre>
+<span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">samples</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">train_loader</span><span class="p">:</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
 <p>NB: at first use, the images and the ground truth will be processed and additional data will be saved in a <code class="code docutils literal notranslate"><span class="pre">rasters</span></code> folder.</p>
 </section>
 </div>
