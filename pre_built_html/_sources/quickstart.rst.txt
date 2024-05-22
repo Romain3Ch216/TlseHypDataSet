@@ -6,6 +6,8 @@ Install **TlseHypDataSet** with pip:
 .. code-block:: console
 
    $ pip install TlseHypDataSet
+
+**Option 1: working with 3D patches**
    
 Download the hyperspectral images at `www.toulouse-hyperspectral-data-set.com <https://www.toulouse-hyperspectral-data-set.com>`_ in an :code:`images` folder: 
 
@@ -17,6 +19,23 @@ Download the hyperspectral images at `www.toulouse-hyperspectral-data-set.com <h
        ├── TLS_1b_2021-06-15_10-41-20_reflectance_rect.hdr
        ├── ...
 
+.. code-block:: python
+
+    from TlseHypDataSet.tlse_hyp_data_set import TlseHypDataSet
+
+    dataset = TlseHypDataSet('/path/to/dataset/', pred_mode='patch', patch_size=64)
+
+**Option 2: working with 1D reflectance spectra**
+
+Download the 1D hyperspectral data at `huggingface.co/datasets/Romain3Ch216/TlseHypDataSet <https://huggingface.co/datasets/Romain3Ch216/TlseHypDataSet>`.
+
+.. code-block:: python
+
+    from TlseHypDataSet.tlse_hyp_data_set import TlseHypDataSet
+
+    dataset = TlseHypDataSet('/path/to/dataset/', pred_mode='pixel', patch_size=1, pixel_data_path='/path/to/1dData/')
+
+**Loading the ground truth**
 
 The :code:`TlseHypDataSet` class has a :code:`standard_splits` attribute that contains 8 standard splits of the ground truth in a :code:`'train'` set, a :code:`'labeled_pool'`, an :code:`'unlabeled_pool'`, a :code:`'validation'` set and a :code:`'test'` set, as explained `here <https://arxiv.org/pdf/2311.08863.pdf>`_. The following example shows how to load the training set of the first standard train / test split in a Pytorch data loader with the :code:`DisjointDataSplit` class (see the :doc:`dataset` and the :doc:`split` sections for more details):
 

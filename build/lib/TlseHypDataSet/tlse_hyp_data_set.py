@@ -39,7 +39,6 @@ class TlseHypDataSet(Dataset):
                  images: List = None,
                  in_h5py: bool = False,
                  data_on_gpu: bool = False,
-                 pixel_data_path: str = None
                  ):
         """
         :param root_path: path to the folder where the data is stored
@@ -63,11 +62,11 @@ class TlseHypDataSet(Dataset):
         self.transform = None
         self.saved_h5py = in_h5py
         self.data_on_gpu = data_on_gpu
-        self.pixel_data_path = pixel_data_path
         self.rgb_bands = np.array([77, 32, 0])
 
         make_dirs([os.path.join(self.root_path, 'inputs')])
         make_dirs([os.path.join(self.root_path, 'outputs')])
+        input_dirs = os.listdir(os.path.join(self.root_path, 'inputs'))
 
         self.images_path = [
             'TLS_3d_2021-06-15_11-10-12_reflectance_rect',
@@ -100,8 +99,21 @@ class TlseHypDataSet(Dataset):
         gt_rsrc = importlib_resources.files('TlseHypDataSet.ground_truth').joinpath('ground_truth.shp')
         self.ground_truth = gpd.read_file(gt_rsrc)
 
-        # If the path to pixel-wise data is None, load image data
-        if pixel_data_path is None:
+        if patch_size == 1 and 'samples_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5' in input_dirs \
+            and 'data_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5' in input_dirs \
+            and 'labels_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5' in input_dirs \
+            and 'areas.npy' in input_dirs:
+            self.saved_h5py = True
+            self.pixel_data = True
+            self.samples = h5py.File(
+                os.path.join(self.root_path, 'inputs', 'samples_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5'), 'r'
+            )['data'][()]
+            h5py_data = os.path.join(self.root_path, 'inputs', 'data_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5')
+            h5py_labels = os.path.join(self.root_path, 'inputs', 'labels_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5')
+            self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r')['data'], h5py.File(h5py_labels, 'r')['data']
+        else:
+            self.pixel_data = False
+            
             assert ('images' in dirs_in_root), "Root directory should include an 'images' folder."
 
             for image in np.array(self.images_path)[np.array(self.images)]:
@@ -140,17 +152,7 @@ class TlseHypDataSet(Dataset):
                 h5py_data, h5py_labels = self.save_data_set()
                 self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r')['data'], h5py.File(h5py_labels, 'r')['data']
         
-        else:
-            self.saved_h5py = True   
-            self.samples = h5py.File(
-                os.path.join(pixel_data_path, 'samples_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5'), 'r'
-            )['data'][()]
-            h5py_data = os.path.join(pixel_data_path, 'data_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5')
-            h5py_labels = os.path.join(pixel_data_path, 'labels_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5')
-            self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r')['data'], h5py.File(h5py_labels, 'r')['data']
-
-        
-        if (self.h5py or pixel_data_path is not None) and self.data_on_gpu:
+        if (self.h5py or self.pixel_data) and self.data_on_gpu:
             logging.info('Loading whole data on device')
             self.h5py_data = self.h5py_data[()]
             self.h5py_labels = self.h5py_labels[()] 
@@ -399,8 +401,8 @@ class TlseHypDataSet(Dataset):
 
     @property
     def areas(self):
-        if self.pixel_data_path is not None:
-            areas = np.load(os.path.join(self.pixel_data_path, 'areas.npy'))
+        if self.pixel_data:
+            areas = np.load(os.path.join(self.root_path, 'inputs', 'areas.npy'))
         else:
             groups = np.unique(self.ground_truth['Group'])
             n_groups = len(groups)
@@ -630,7 +632,7 @@ class TlseHypDataSet(Dataset):
         return len(self.samples)
 
     def __getitem__(self, i):
-        if (self.h5py and self.saved_h5py) or self.pixel_data_path:
+        if (self.h5py and self.saved_h5py) or self.pixel_data:
             sample = self.h5py_data[i]
             gt = self.h5py_labels[i]
         else:
