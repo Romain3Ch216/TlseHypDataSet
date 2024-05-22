@@ -16,12 +16,17 @@ import seaborn as sns
 import h5py
 import importlib_resources
 import pkg_resources
+import logging
+import sys
 
 
 __all__ = [
     'TlseHypDataSet'
 ]
 
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logger = logging.getLogger()
 
 class TlseHypDataSet(Dataset):
     """
@@ -33,7 +38,8 @@ class TlseHypDataSet(Dataset):
                  annotations: str = 'land_cover',
                  images: List = None,
                  in_h5py: bool = False,
-                 data_on_gpu: bool = False
+                 data_on_gpu: bool = False,
+                 pixel_data_path: str = None
                  ):
         """
         :param root_path: path to the folder where the data is stored
@@ -57,6 +63,7 @@ class TlseHypDataSet(Dataset):
         self.transform = None
         self.saved_h5py = in_h5py
         self.data_on_gpu = data_on_gpu
+        self.pixel_data_path = pixel_data_path
         self.rgb_bands = np.array([77, 32, 0])
 
         make_dirs([os.path.join(self.root_path, 'inputs')])
@@ -78,16 +85,6 @@ class TlseHypDataSet(Dataset):
             self.images = np.arange(len(self.images_path))
 
         dirs_in_root = os.listdir(root_path)
-        assert ('images' in dirs_in_root), "Root directory should include an 'images' folder."
-
-        for image in np.array(self.images_path)[np.array(self.images)]:
-            if data_in_folder([image + '.tif'], os.path.join(root_path, 'images')) is False:
-                assert image + '.bsq' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
-                assert image + '.hdr' in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(image)
-                tile_raster(os.path.join(self.root_path, 'images', image + '.bsq'))
-
-        gt_rsrc = importlib_resources.files('TlseHypDataSet.ground_truth').joinpath('ground_truth.shp')
-        self.ground_truth = gpd.read_file(gt_rsrc)
 
         self.wv_ = None
         self.bbl_ = None
@@ -97,43 +94,67 @@ class TlseHypDataSet(Dataset):
         self.n_bands_ = None
         self.samples = None
 
-
-        print('Read metadata...')
+        logging.info('Read metadata')
         self.read_metadata()
 
-        print('Open images...')
-        self.image_rasters = [rasterio.open(os.path.join(self.root_path, 'images', image_path + '.tif'))
-                              for image_path in np.array(self.images_path)[np.array(self.images)]]
+        gt_rsrc = importlib_resources.files('TlseHypDataSet.ground_truth').joinpath('ground_truth.shp')
+        self.ground_truth = gpd.read_file(gt_rsrc)
 
-        if 'zero_masks.pkl' in os.listdir(os.path.join(self.root_path, 'inputs')):
-            with open(os.path.join(self.root_path, 'inputs', 'zero_masks.pkl'), 'rb') as f:
-                self.zero_masks = pkl.load(f)
+        # If the path to pixel-wise data is None, load image data
+        if pixel_data_path is None:
+            assert ('images' in dirs_in_root), "Root directory should include an 'images' folder."
+
+            for image in np.array(self.images_path)[np.array(self.images)]:
+                if data_in_folder([image + '.tif'], os.path.join(root_path, 'images')) is False:
+                    assert image + '.bsq' in os.listdir(os.path.join(root_path, 'images')), "Image {} misses".format(image)
+                    assert image + '.hdr' in os.listdir(os.path.join(root_path, 'images')), "Header {} misses".format(image)
+                    tile_raster(os.path.join(self.root_path, 'images', image + '.bsq'))
+
+            logging.info('Open images')
+            self.image_rasters = [rasterio.open(os.path.join(self.root_path, 'images', image_path + '.tif'))
+                                for image_path in np.array(self.images_path)[np.array(self.images)]]
+
+            if 'zero_masks.pkl' in os.listdir(os.path.join(self.root_path, 'inputs')):
+                with open(os.path.join(self.root_path, 'inputs', 'zero_masks.pkl'), 'rb') as f:
+                    self.zero_masks = pkl.load(f)
+            else:
+                self.zero_masks = [np.ones((img.height, img.width)) for img in self.image_rasters]
+
+            logging.info('Rasterize ground truth')
+            self.gts_path = self.rasterize_gt_shapefile()
+
+            logging.info('Open ground truth rasters')
+            self.gt_rasters = dict(
+                (att, [(self.images[i], rasterio.open(gt_path[:-3] + 'tif')) for i, gt_path in enumerate(self.gts_path[att])])
+                for att in self.gts_path)
+            
+            if pred_mode == 'patch':
+                self.compute_patches()
+            elif pred_mode == 'pixel':
+                self.compute_pixels()
+            else:
+                raise ValueError("pred_mode is either patch or pixel.")
+
+            if self.h5py:
+                logging.ingo('Saving data set in h5py files')
+                h5py_data, h5py_labels = self.save_data_set()
+                self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r')['data'], h5py.File(h5py_labels, 'r')['data']
+        
         else:
-            self.zero_masks = [np.ones((img.height, img.width)) for img in self.image_rasters]
-
-        print('Rasterize ground truth...')
-        self.gts_path = self.rasterize_gt_shapefile()
-
-        print('Open ground truth rasters...')
-        self.gt_rasters = dict(
-            (att, [(self.images[i], rasterio.open(gt_path[:-3] + 'tif')) for i, gt_path in enumerate(self.gts_path[att])])
-            for att in self.gts_path)
-
-        if pred_mode == 'patch':
-            self.compute_patches()
-        elif pred_mode == 'pixel':
-            self.compute_pixels()
-        else:
-            raise ValueError("pred_mode is either patch or pixel.")
-
-        if self.h5py:
-            print('Saving data set in h5py files...')
-            h5py_data, h5py_labels = self.save_data_set()
+            self.saved_h5py = True   
+            self.samples = h5py.File(
+                os.path.join(pixel_data_path, 'samples_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5'), 'r'
+            )['data'][()]
+            h5py_data = os.path.join(pixel_data_path, 'data_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5')
+            h5py_labels = os.path.join(pixel_data_path, 'labels_pixel_1_images_0_1_2_3_4_5_6_7_8__.hdf5')
             self.h5py_data, self.h5py_labels = h5py.File(h5py_data, 'r')['data'], h5py.File(h5py_labels, 'r')['data']
-            if self.data_on_gpu:
-                print('Loading whole data on device...')
-                self.h5py_data = self.h5py_data[()]
-                self.h5py_labels = self.h5py_labels[()]
+
+        
+        if (self.h5py or pixel_data_path is not None) and self.data_on_gpu:
+            logging.info('Loading whole data on device')
+            self.h5py_data = self.h5py_data[()]
+            self.h5py_labels = self.h5py_labels[()] 
+
 
         self.test_patches = [
             {
@@ -378,20 +399,23 @@ class TlseHypDataSet(Dataset):
 
     @property
     def areas(self):
-        groups = np.unique(self.ground_truth['Group'])
-        n_groups = len(groups)
-        classes = np.unique(self.ground_truth['Material'])
-        classes = classes[1:]
-        n_classes = len(classes)
-        areas = np.zeros((n_groups, n_classes))
+        if self.pixel_data_path is not None:
+            areas = np.load(os.path.join(self.pixel_data_path, 'areas.npy'))
+        else:
+            groups = np.unique(self.ground_truth['Group'])
+            n_groups = len(groups)
+            classes = np.unique(self.ground_truth['Material'])
+            classes = classes[1:]
+            n_classes = len(classes)
+            areas = np.zeros((n_groups, n_classes))
 
-        for i in range(n_classes):
-            class_id = classes[i]
-            polygons = self.ground_truth[self.ground_truth['Material'] == class_id]
-            polygons_by_groups = polygons.groupby(by='Group')
-            for group in polygons_by_groups.groups.keys():
-                group_indice = np.where(groups == group)[0][0]
-                areas[group_indice, i] = polygons_by_groups.get_group(group).area.sum()
+            for i in range(n_classes):
+                class_id = classes[i]
+                polygons = self.ground_truth[self.ground_truth['Material'] == class_id]
+                polygons_by_groups = polygons.groupby(by='Group')
+                for group in polygons_by_groups.groups.keys():
+                    group_indice = np.where(groups == group)[0][0]
+                    areas[group_indice, i] = polygons_by_groups.get_group(group).area.sum()
         return areas.astype(int)
 
     @property
@@ -461,9 +485,9 @@ class TlseHypDataSet(Dataset):
         file = 'ground_truth_split_{}_{}_p_labeled_{}_p_val_{}_p_test_{}.pkl'.format(timestamp, images, p_labeled, p_val, p_test)
         already_computed = file in os.listdir(os.path.join(self.root_path, 'outputs'))
         if already_computed:
-            print('Data sets split is already computed')
+            logging.info('Data sets split is already computed')
         else:
-            print('Computing data sets split...')
+            logging.info('Computing data sets split...')
         return already_computed
 
     def load_splits(self, path=None, p_labeled=None, p_val=None, p_test=None, fold=None):
@@ -575,7 +599,7 @@ class TlseHypDataSet(Dataset):
         labels_file_path = os.path.join(self.root_path, 'inputs', 'labels_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, option))
         if 'data_{}_{}_{}_{}.hdf5'.format(self.pred_mode, self.patch_size, images, option) in os.listdir(os.path.join(self.root_path, 'inputs')):
             self.saved_h5py = True
-            print("Data already saved in .h5py files.")
+            logging.info("Data already saved in .h5py files.")
         else:
             self.saved_h5py = False
             data_file = h5py.File(data_file_path, "w")
@@ -606,7 +630,7 @@ class TlseHypDataSet(Dataset):
         return len(self.samples)
 
     def __getitem__(self, i):
-        if self.h5py and self.saved_h5py:
+        if (self.h5py and self.saved_h5py) or self.pixel_data_path:
             sample = self.h5py_data[i]
             gt = self.h5py_labels[i]
         else:

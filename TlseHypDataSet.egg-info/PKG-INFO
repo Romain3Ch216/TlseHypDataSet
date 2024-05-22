@@ -27,7 +27,7 @@ Toulouse Hyperspectral Data Set
 Getting started
 ===============
 
-**TlseHypDataSet** is compatible with Python>=3.8,<3.1:
+Install **TlseHypDataSet** (compatible with Python>=3.8,<3.1) with pip:
 
 .. code-block:: console
 
